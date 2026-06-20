@@ -710,7 +710,10 @@
 <div id="appContent" style="display:none;">
 <div class="user-badge-bar">
   <span id="userEmailBadge">—</span>
-  <button onclick="window._fbSignOut()">Déconnexion</button>
+  <div style="display:flex;gap:8px;">
+    <button onclick="resetAllData()" style="background:#b07d1a;">🗑 Tout réinitialiser</button>
+    <button onclick="window._fbSignOut()">Déconnexion</button>
+  </div>
 </div>
 
 <!-- ACCUEIL -->
@@ -3059,6 +3062,30 @@ function initLarvesPage(){
       if(btn){ larTransfererVersNymphes(parseInt(btn.dataset.row)); }
     });
   }
+}
+
+
+/* ══ RÉINITIALISATION COMPLÈTE ══ */
+async function resetAllData() {
+  if (!confirm('⚠️ Ceci va supprimer TOUTES les données de TOUS les modules (locale + cloud partagé). Cette action est irréversible pour tout le monde. Continuer ?')) return;
+  if (!confirm('Confirmation finale : êtes-vous absolument sûr de vouloir tout effacer ?')) return;
+
+  const keys = ['env_elevage_v2', 'col_v21', 'nymphes_v1', 'larves_v7', 'ponte_v1', 'stock_son_ble_v4', 'stock_legumes_v1', 'stock_legumes_seuil', 'stock_levure_v1', 'stock_poids_casse_v1'];
+
+  // 1. Vider le localStorage
+  keys.forEach(function(k) { localStorage.removeItem(k); });
+
+  // 2. Vider Firestore (cloud partagé)
+  const ready = await fbWaitReady(5000);
+  if (ready && window._fbSaveData) {
+    for (const k of keys) {
+      try { await window._fbSaveData(k, (k === 'env_elevage_v2' || k === 'nymphes_v1') ? {} : []); }
+      catch(e) { console.error('Erreur reset cloud pour ' + k, e); }
+    }
+  }
+
+  alert('✓ Toutes les données ont été réinitialisées. La page va se recharger.');
+  window.location.reload();
 }
 
 </script>
