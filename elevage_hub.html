@@ -70,6 +70,33 @@
         });
       }
     });
+
+    // ══ STOCKAGE PARTAGÉ FIRESTORE ══
+    // Collection unique "elevage_data", un document par module (ex: "stock_son_ble_v4")
+    window._fbLoadData = async function(key, fallback) {
+      try {
+        const ref = window._fbDoc(window._fbDb, 'elevage_data', key);
+        const snap = await window._fbGetDoc(ref);
+        if (snap.exists()) {
+          return snap.data().value;
+        }
+        return fallback;
+      } catch (e) {
+        console.error('Erreur chargement Firestore ('+key+'):', e);
+        return fallback;
+      }
+    };
+
+    window._fbSaveData = async function(key, value) {
+      try {
+        const ref = window._fbDoc(window._fbDb, 'elevage_data', key);
+        await window._fbSetDoc(ref, { value: value, updatedAt: new Date().toISOString() });
+        return true;
+      } catch (e) {
+        console.error('Erreur sauvegarde Firestore ('+key+'):', e);
+        return false;
+      }
+    };
   </script>
 
   <style>
@@ -910,7 +937,10 @@ function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
-  if (id === 'page-son') { sonRender(); document.getElementById('inDate').value = new Date().toISOString().split('T')[0]; }
+  if (id === 'page-son') {
+    sonSyncFromCloud().then(function(){ sonRender(); });
+    document.getElementById('inDate').value = new Date().toISOString().split('T')[0];
+  }
   if (id === 'page-leg') { legRender(); document.getElementById('leg-inDate').value = new Date().toISOString().split('T')[0]; }
   if (id === 'page-lev') { levRender(); document.getElementById('lev-inDate').value = new Date().toISOString().split('T')[0]; }
   if (id === 'page-poids') { poidsRender(); document.getElementById('poids-inDate').value = new Date().toISOString().split('T')[0]; }
@@ -1130,7 +1160,17 @@ function initEnvPage() {
 /* ══ SON DE BLÉ ══ */
 const SON_KEY = 'stock_son_ble_v4';
 function sonLoad() { try { return JSON.parse(localStorage.getItem(SON_KEY))||[]; } catch { return []; } }
-function sonSave(d) { localStorage.setItem(SON_KEY, JSON.stringify(d)); }
+function sonSave(d) {
+  localStorage.setItem(SON_KEY, JSON.stringify(d));
+  if (window._fbSaveData) window._fbSaveData(SON_KEY, d);
+}
+async function sonSyncFromCloud() {
+  if (!window._fbLoadData) return;
+  const cloudData = await window._fbLoadData(SON_KEY, null);
+  if (cloudData !== null) {
+    localStorage.setItem(SON_KEY, JSON.stringify(cloudData));
+  }
+}
 
 function sonComputeRows(data) {
   var fifo=[], rows=[];
