@@ -941,14 +941,14 @@ function showPage(id) {
     sonSyncFromCloud().then(function(){ sonRender(); });
     document.getElementById('inDate').value = new Date().toISOString().split('T')[0];
   }
-  if (id === 'page-leg') { legRender(); document.getElementById('leg-inDate').value = new Date().toISOString().split('T')[0]; }
-  if (id === 'page-lev') { levRender(); document.getElementById('lev-inDate').value = new Date().toISOString().split('T')[0]; }
-  if (id === 'page-poids') { poidsRender(); document.getElementById('poids-inDate').value = new Date().toISOString().split('T')[0]; }
-  if (id === 'page-env') initEnvPage();
-  if (id === 'page-col') initColPage();
-  if (id === 'page-oeufs') initOeufsPage();
-  if (id === 'page-nymphes') initNymphesPage();
-  if (id === 'page-larves') initLarvesPage();
+  if (id === 'page-leg') { legLoadSyncFromCloud().then(function(){ legRender(); }); document.getElementById('leg-inDate').value = new Date().toISOString().split('T')[0]; }
+  if (id === 'page-lev') { levLoadSyncFromCloud().then(function(){ levRender(); }); document.getElementById('lev-inDate').value = new Date().toISOString().split('T')[0]; }
+  if (id === 'page-poids') { poidsLoadSyncFromCloud().then(function(){ poidsRender(); }); document.getElementById('poids-inDate').value = new Date().toISOString().split('T')[0]; }
+  if (id === 'page-env') { envSyncFromCloud().then(function(){ initEnvPage(); }); }
+  if (id === 'page-col') { colSyncFromCloud().then(function(){ initColPage(); }); }
+  if (id === 'page-oeufs') { ponteSyncFromCloud().then(function(){ initOeufsPage(); }); }
+  if (id === 'page-nymphes') { nymSyncFromCloud().then(function(){ initNymphesPage(); }); }
+  if (id === 'page-larves') { larSyncFromCloud().then(function(){ initLarvesPage(); }); }
 }
 
 
@@ -963,7 +963,15 @@ let envClockTimer = null;
 function envLoadDB() {
   try { return JSON.parse(localStorage.getItem(ENV_KEY)) || {}; } catch { return {}; }
 }
-function envSaveDB() { localStorage.setItem(ENV_KEY, JSON.stringify(envDb)); }
+function envSaveDB() {
+  localStorage.setItem(ENV_KEY, JSON.stringify(envDb));
+  if (window._fbSaveData) window._fbSaveData(ENV_KEY, envDb);
+}
+async function envSyncFromCloud() {
+  if (!window._fbLoadData) return;
+  const cloudData = await window._fbLoadData(ENV_KEY, null);
+  if (cloudData !== null) { envDb = cloudData; localStorage.setItem(ENV_KEY, JSON.stringify(cloudData)); }
+}
 function envTodayKey() { return new Date().toISOString().slice(0,10); }
 function envMonthKey() { return new Date().toISOString().slice(0,7); }
 const envMean = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
@@ -1259,7 +1267,15 @@ const LEG_KEY = 'stock_legumes_v1';
 const LEG_SEUIL_KEY = 'stock_legumes_seuil';
 function legGetSeuil() { var v=parseFloat(localStorage.getItem(LEG_SEUIL_KEY)); return isNaN(v)?5:v; }
 function legLoad() { try { return JSON.parse(localStorage.getItem(LEG_KEY))||[]; } catch { return []; } }
-function legSave(d) { localStorage.setItem(LEG_KEY, JSON.stringify(d)); }
+function legSave(d) {
+  localStorage.setItem(LEG_KEY, JSON.stringify(d));
+  if (window._fbSaveData) window._fbSaveData(LEG_KEY, d);
+}
+async function legLoadSyncFromCloud() {
+  if (!window._fbLoadData) return;
+  const cloudData = await window._fbLoadData(LEG_KEY, null);
+  if (cloudData !== null) { localStorage.setItem(LEG_KEY, JSON.stringify(cloudData)); }
+}
 function legComputeRows(data) {
   var fifo=[], rows=[];
   data.forEach(function(row,i) {
@@ -1317,7 +1333,15 @@ function legRender() {
 /* ══ LEVURE ══ */
 const LEV_KEY = 'stock_levure_v1';
 function levLoad() { try { return JSON.parse(localStorage.getItem(LEV_KEY))||[]; } catch { return []; } }
-function levSave(d) { localStorage.setItem(LEV_KEY, JSON.stringify(d)); }
+function levSave(d) {
+  localStorage.setItem(LEV_KEY, JSON.stringify(d));
+  if (window._fbSaveData) window._fbSaveData(LEV_KEY, d);
+}
+async function levLoadSyncFromCloud() {
+  if (!window._fbLoadData) return;
+  const cloudData = await window._fbLoadData(LEV_KEY, null);
+  if (cloudData !== null) { localStorage.setItem(LEV_KEY, JSON.stringify(cloudData)); }
+}
 function levComputeRows(data) {
   var fifo=[], rows=[];
   data.forEach(function(row,i) {
@@ -1416,7 +1440,15 @@ document.addEventListener('change', function(e){
 /* ══ POIDS CASSÉ ══ */
 const POIDS_KEY = 'stock_poids_casse_v1';
 function poidsLoad() { try { return JSON.parse(localStorage.getItem(POIDS_KEY))||[]; } catch { return []; } }
-function poidsSave(d) { localStorage.setItem(POIDS_KEY, JSON.stringify(d)); }
+function poidsSave(d) {
+  localStorage.setItem(POIDS_KEY, JSON.stringify(d));
+  if (window._fbSaveData) window._fbSaveData(POIDS_KEY, d);
+}
+async function poidsLoadSyncFromCloud() {
+  if (!window._fbLoadData) return;
+  const cloudData = await window._fbLoadData(POIDS_KEY, null);
+  if (cloudData !== null) { localStorage.setItem(POIDS_KEY, JSON.stringify(cloudData)); }
+}
 function poidsComputeRows(data) {
   var fifo=[], rows=[];
   data.forEach(function(row,i) {
@@ -1490,7 +1522,15 @@ document.addEventListener('click', function(e){
 const COL_CLE = 'col_v21';
 let colLots = [];
 
-function colSauver(){ localStorage.setItem(COL_CLE, JSON.stringify(colLots)); }
+function colSauver(){
+  localStorage.setItem(COL_CLE, JSON.stringify(colLots));
+  if (window._fbSaveData) window._fbSaveData(COL_CLE, colLots);
+}
+async function colSyncFromCloud(){
+  if (!window._fbLoadData) return;
+  const cloudData = await window._fbLoadData(COL_CLE, null);
+  if (cloudData !== null) { colLots = cloudData; localStorage.setItem(COL_CLE, JSON.stringify(cloudData)); }
+}
 function colDateStr(d){ return d.toISOString().slice(0,10); }
 function colAddJours(str,n){ const d=new Date(str+'T12:00:00'); d.setDate(d.getDate()+n); return colDateStr(d); }
 function colAffDate(str){ if(!str) return '-'; const [y,m,j]=str.split('-'); return j+'/'+m+'/'+y; }
@@ -1776,7 +1816,15 @@ function ponteDiffDays(dateStr) {
 function ponteLoadPonte() {
   try { return JSON.parse(localStorage.getItem(PONTE_KEY))||[]; } catch(e) { return []; }
 }
-function ponteSavePonte(data) { localStorage.setItem(PONTE_KEY, JSON.stringify(data)); }
+function ponteSavePonte(data) {
+  localStorage.setItem(PONTE_KEY, JSON.stringify(data));
+  if (window._fbSaveData) window._fbSaveData(PONTE_KEY, data);
+}
+async function ponteSyncFromCloud() {
+  if (!window._fbLoadData) return;
+  const cloudData = await window._fbLoadData(PONTE_KEY, null);
+  if (cloudData !== null) { localStorage.setItem(PONTE_KEY, JSON.stringify(cloudData)); }
+}
 
 function ponteTousNumerosUtilises(excludeUids) {
   excludeUids = excludeUids||[];
@@ -2019,7 +2067,15 @@ function nymChargerDB(){
     return data;
   }catch(e){ return {lots:[],grillesCreees:[]}; }
 }
-function nymSauverDB(db){ localStorage.setItem(NYM_CLE_NYMPHES, JSON.stringify(db)); }
+function nymSauverDB(db){
+  localStorage.setItem(NYM_CLE_NYMPHES, JSON.stringify(db));
+  if (window._fbSaveData) window._fbSaveData(NYM_CLE_NYMPHES, db);
+}
+async function nymSyncFromCloud(){
+  if (!window._fbLoadData) return;
+  const cloudData = await window._fbLoadData(NYM_CLE_NYMPHES, null);
+  if (cloudData !== null) { localStorage.setItem(NYM_CLE_NYMPHES, JSON.stringify(cloudData)); }
+}
 let NYM_DB = null;
 
 function nymGenId(){ return 'lot_'+Date.now()+'_'+Math.floor(Math.random()*10000); }
@@ -2191,6 +2247,7 @@ function nymTransmettreVersColeopteres(grille){
       c2: null, c3: null, c4: null
     });
     localStorage.setItem('col_v21', JSON.stringify(lots));
+    if (window._fbSaveData) window._fbSaveData('col_v21', lots);
   }catch(e){ console.error('Erreur transmission col_v21', e); }
 }
 
@@ -2610,7 +2667,15 @@ function larApplySimInput(){
 
 let larData=[],larEditId=null;
 function larLoad(){try{larData=JSON.parse(localStorage.getItem(LAR_LS))||[];}catch(e){larData=[];}}
-function larSave(){localStorage.setItem(LAR_LS,JSON.stringify(larData));}
+function larSave(){
+  localStorage.setItem(LAR_LS,JSON.stringify(larData));
+  if (window._fbSaveData) window._fbSaveData(LAR_LS, larData);
+}
+async function larSyncFromCloud(){
+  if (!window._fbLoadData) return;
+  const cloudData = await window._fbLoadData(LAR_LS, null);
+  if (cloudData !== null) { larData = cloudData; localStorage.setItem(LAR_LS, JSON.stringify(cloudData)); }
+}
 
 let larKRow=null,larKField=null,larKVal='';
 function larOpenKpad(rowIdx,fieldId,curVal,label){
@@ -2949,6 +3014,7 @@ function larTransfererVersNymphes(rowIdx){
     origine:'transfert_larves'
   });
   localStorage.setItem('nymphes_v1', JSON.stringify(nymDb));
+  if (window._fbSaveData) window._fbSaveData('nymphes_v1', nymDb);
 
   row.nymphTransfere=true;
   larSave();
