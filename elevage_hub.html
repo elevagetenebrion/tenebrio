@@ -2549,21 +2549,27 @@ function nymRemplirSelectBacsGrilleAvecActuel(select, bacActuel){
   });
 }
 
+function nymSafeListen(id, event, handler){
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(event, handler);
+  else console.warn('[Nymphes] Élément manquant pour listener: #' + id);
+}
+
 function nymAttacherEvenements(){
   if(window._nymEventsAttached) return;
   window._nymEventsAttached = true;
 
-  document.getElementById('nymBM15').addEventListener('click', function(){nymShiftSim(-15);});
-  document.getElementById('nymBM1').addEventListener('click', function(){nymShiftSim(-1);});
-  document.getElementById('nymBP1').addEventListener('click', function(){nymShiftSim(1);});
-  document.getElementById('nymBP15').addEventListener('click', function(){nymShiftSim(15);});
-  document.getElementById('nymBP30').addEventListener('click', function(){nymShiftSim(30);});
-  document.getElementById('nymBApply').addEventListener('click', nymApplySimInput);
-  document.getElementById('nymBReset').addEventListener('click', nymResetSim);
-  document.getElementById('nymSimDateInput').addEventListener('keydown', function(e){if(e.key==='Enter')nymApplySimInput();});
+  nymSafeListen('nymBM15','click', function(){nymShiftSim(-15);});
+  nymSafeListen('nymBM1','click', function(){nymShiftSim(-1);});
+  nymSafeListen('nymBP1','click', function(){nymShiftSim(1);});
+  nymSafeListen('nymBP15','click', function(){nymShiftSim(15);});
+  nymSafeListen('nymBP30','click', function(){nymShiftSim(30);});
+  nymSafeListen('nymBApply','click', nymApplySimInput);
+  nymSafeListen('nymBReset','click', nymResetSim);
+  nymSafeListen('nymSimDateInput','keydown', function(e){if(e.key==='Enter')nymApplySimInput();});
 
-  document.getElementById('nymKeypadPanel').addEventListener('click', function(e){e.stopPropagation();});
-  document.getElementById('nymKeypadOverlay').addEventListener('click', function(){nymFermerPave();});
+  nymSafeListen('nymKeypadPanel','click', function(e){e.stopPropagation();});
+  nymSafeListen('nymKeypadOverlay','click', function(){nymFermerPave();});
   document.querySelectorAll('.nym-keypad-grid button').forEach(function(btn){
     btn.addEventListener('click', function(){
       const k=btn.dataset.k;
@@ -2573,11 +2579,11 @@ function nymAttacherEvenements(){
       document.getElementById('nymKeypadDisplay').textContent=nymKpValeur;
     });
   });
-  document.getElementById('nymKpEffacer').addEventListener('click', function(){
+  nymSafeListen('nymKpEffacer','click', function(){
     nymKpValeur='0'; document.getElementById('nymKeypadDisplay').textContent=nymKpValeur;
   });
-  document.getElementById('nymKpAnnuler').addEventListener('click', nymFermerPave);
-  document.getElementById('nymKpValider').addEventListener('click', function(){
+  nymSafeListen('nymKpAnnuler','click', nymFermerPave);
+  nymSafeListen('nymKpValider','click', function(){
     const val=parseFloat(nymKpValeur)||0;
     const cb=nymKpCallback;
     nymFermerPave();
@@ -2585,22 +2591,22 @@ function nymAttacherEvenements(){
   });
 
   let nymAjPoids=0;
-  document.getElementById('nymBtnAjouter').addEventListener('click', function(){
+  nymSafeListen('nymBtnAjouter','click', function(){
     nymAjPoids=0;
     document.getElementById('nymFAjDate').value=nymTodayISO();
     document.getElementById('nymFAjPoidsAffiche').value='0';
     nymRemplirSelectBacs(document.getElementById('nymFAjBac'), null, null);
     document.getElementById('nymOvAjouter').classList.add('visible');
   });
-  document.getElementById('nymFAjPoidsAffiche').addEventListener('click', function(){
+  nymSafeListen('nymFAjPoidsAffiche','click', function(){
     nymOuvrirPave('Poids du bac (g)', nymAjPoids, function(v){
       nymAjPoids=v; document.getElementById('nymFAjPoidsAffiche').value=v;
     });
   });
-  document.getElementById('nymFAjAnnuler').addEventListener('click', function(){
+  nymSafeListen('nymFAjAnnuler','click', function(){
     document.getElementById('nymOvAjouter').classList.remove('visible');
   });
-  document.getElementById('nymFAjValider').addEventListener('click', function(){
+  nymSafeListen('nymFAjValider','click', function(){
     const date=document.getElementById('nymFAjDate').value;
     const bac=parseInt(document.getElementById('nymFAjBac').value,10);
     if(!date){nymToast('Veuillez indiquer une date.');return;}
@@ -2613,15 +2619,15 @@ function nymAttacherEvenements(){
     nymToast('Bac n°'+bac+' ajouté.');
   });
 
-  document.getElementById('nymFModPoidsAffiche').addEventListener('click', function(){
+  nymSafeListen('nymFModPoidsAffiche','click', function(){
     nymOuvrirPave('Poids du bac (g)', nymModPoids, function(v){
       nymModPoids=v; document.getElementById('nymFModPoidsAffiche').value=v;
     });
   });
-  document.getElementById('nymFModAnnuler').addEventListener('click', function(){
+  nymSafeListen('nymFModAnnuler','click', function(){
     document.getElementById('nymOvModifier').classList.remove('visible');
   });
-  document.getElementById('nymFModValider').addEventListener('click', function(){
+  nymSafeListen('nymFModValider','click', function(){
     const lot=NYM_DB.lots.find(function(l){return l.id===nymModLotId;});
     if(!lot) return;
     const nouveauBac=parseInt(document.getElementById('nymFModBac').value,10);
@@ -2630,14 +2636,14 @@ function nymAttacherEvenements(){
     document.getElementById('nymOvModifier').classList.remove('visible');
     nymToast('Bac n°'+nouveauBac+' mis à jour.');
   });
-  document.getElementById('nymFModSupprimer').addEventListener('click', function(){
+  nymSafeListen('nymFModSupprimer','click', function(){
     NYM_DB.lots=NYM_DB.lots.filter(function(l){return l.id!==nymModLotId;});
     nymSauverDB(NYM_DB); nymRenderTableau();
     document.getElementById('nymOvModifier').classList.remove('visible');
     nymToast('Lot supprimé.');
   });
 
-  document.getElementById('nymBtnFusionner').addEventListener('click', function(){
+  nymSafeListen('nymBtnFusionner','click', function(){
     const dispo=NYM_DB.lots.filter(function(l){return !(l.tri&&l.tri.date);});
     if(dispo.length<2){nymToast('Il faut au moins 2 bacs disponibles pour fusionner.');return;}
     const cl=document.getElementById('nymFusionChecklist');
@@ -2647,15 +2653,15 @@ function nymAttacherEvenements(){
     document.getElementById('nymFusionRecap').innerHTML='Poids total : <b>0 g</b>';
     document.getElementById('nymOvFusionListe').classList.add('visible');
   });
-  document.getElementById('nymFusionChecklist').addEventListener('change', function(){
+  nymSafeListen('nymFusionChecklist','change', function(){
     const checked=Array.prototype.map.call(document.querySelectorAll('.nym-fusion-check:checked'),function(c){return c.value;});
     const total=checked.reduce(function(s,id){const l=NYM_DB.lots.find(function(x){return x.id===id;});return s+(l?l.poids:0);},0);
     document.getElementById('nymFusionRecap').innerHTML='Poids total : <b>'+total+' g</b> ('+checked.length+' bac(s) sélectionné(s))';
   });
-  document.getElementById('nymFusAnnuler').addEventListener('click', function(){
+  nymSafeListen('nymFusAnnuler','click', function(){
     document.getElementById('nymOvFusionListe').classList.remove('visible');
   });
-  document.getElementById('nymFusContinuer').addEventListener('click', function(){
+  nymSafeListen('nymFusContinuer','click', function(){
     const checked=Array.prototype.map.call(document.querySelectorAll('.nym-fusion-check:checked'),function(c){return c.value;});
     if(checked.length<2){nymToast('Sélectionnez au moins 2 bacs.');return;}
     nymFusionSelection=checked;
@@ -2665,11 +2671,11 @@ function nymAttacherEvenements(){
     document.getElementById('nymOvFusionListe').classList.remove('visible');
     document.getElementById('nymOvFusionBac').classList.add('visible');
   });
-  document.getElementById('nymFusBacAnnuler').addEventListener('click', function(){
+  nymSafeListen('nymFusBacAnnuler','click', function(){
     document.getElementById('nymOvFusionBac').classList.remove('visible');
     document.getElementById('nymOvFusionListe').classList.add('visible');
   });
-  document.getElementById('nymFusBacValider').addEventListener('click', function(){
+  nymSafeListen('nymFusBacValider','click', function(){
     const lotsAFusionner=NYM_DB.lots.filter(function(l){return nymFusionSelection.indexOf(l.id)!==-1;});
     const poidsTotal=lotsAFusionner.reduce(function(s,l){return s+l.poids;},0);
     const dateMin=lotsAFusionner.reduce(function(min,l){return (!min||l.dateEntree<min)?l.dateEntree:min;},null);
@@ -2682,7 +2688,7 @@ function nymAttacherEvenements(){
     nymFusionSelection=[];
   });
 
-  document.getElementById('nymBtnTrier').addEventListener('click', function(){
+  nymSafeListen('nymBtnTrier','click', function(){
     const dispo=NYM_DB.lots;
     if(!dispo.length){nymToast('Aucun bac disponible à trier.');return;}
     const cl=document.getElementById('nymTrierChecklist');
@@ -2694,15 +2700,15 @@ function nymAttacherEvenements(){
     document.getElementById('nymTrierRecap').innerHTML='Poids total des nymphes sélectionnées : <b>0 g</b>';
     document.getElementById('nymOvTrierListe').classList.add('visible');
   });
-  document.getElementById('nymTrierChecklist').addEventListener('change', function(){
+  nymSafeListen('nymTrierChecklist','change', function(){
     const checked=Array.prototype.map.call(document.querySelectorAll('.nym-trier-check:checked'),function(c){return c.value;});
     const total=checked.reduce(function(s,id){const l=NYM_DB.lots.find(function(x){return x.id===id;});return s+(l?l.poids:0);},0);
     document.getElementById('nymTrierRecap').innerHTML='Poids total des nymphes sélectionnées : <b>'+total+' g</b> ('+checked.length+' bac(s))';
   });
-  document.getElementById('nymTrierAnnuler').addEventListener('click', function(){
+  nymSafeListen('nymTrierAnnuler','click', function(){
     document.getElementById('nymOvTrierListe').classList.remove('visible');
   });
-  document.getElementById('nymTrierContinuer').addEventListener('click', function(){
+  nymSafeListen('nymTrierContinuer','click', function(){
     const checked=Array.prototype.map.call(document.querySelectorAll('.nym-trier-check:checked'),function(c){return c.value;});
     if(!checked.length){nymToast('Sélectionnez au moins un bac.');return;}
     nymTrierSelection=checked;
@@ -2716,20 +2722,20 @@ function nymAttacherEvenements(){
     document.getElementById('nymOvTrierListe').classList.remove('visible');
     document.getElementById('nymOvTrierResultats').classList.add('visible');
   });
-  document.getElementById('nymFTriColeoAffiche').addEventListener('click', function(){
+  nymSafeListen('nymFTriColeoAffiche','click', function(){
     nymOuvrirPave('Poids des coléoptères (g)', nymTriPoidsColeo, function(v){
       nymTriPoidsColeo=v; document.getElementById('nymFTriColeoAffiche').value=v; nymVerifierPlafondTri();
     });
   });
-  document.getElementById('nymFTriMortsAffiche').addEventListener('click', function(){
+  nymSafeListen('nymFTriMortsAffiche','click', function(){
     nymOuvrirPave('Poids des morts (g)', nymTriPoidsMorts, function(v){
       nymTriPoidsMorts=v; document.getElementById('nymFTriMortsAffiche').value=v; nymVerifierPlafondTri();
     });
   });
-  document.getElementById('nymTriResAnnuler').addEventListener('click', function(){
+  nymSafeListen('nymTriResAnnuler','click', function(){
     document.getElementById('nymOvTrierResultats').classList.remove('visible');
   });
-  document.getElementById('nymTriResValider').addEventListener('click', function(){
+  nymSafeListen('nymTriResValider','click', function(){
     const date=document.getElementById('nymFTriDate').value;
     if(!date){nymToast('Veuillez indiquer la date du tri.');return;}
     const totalNymphes=nymTotalNymphesSelection();
@@ -2761,11 +2767,11 @@ function nymAttacherEvenements(){
     nymOuvrirCreationGrilleSuivante();
   });
 
-  document.getElementById('nymGrilleAnnuler').addEventListener('click', function(){
+  nymSafeListen('nymGrilleAnnuler','click', function(){
     document.getElementById('nymOvCreerGrille').classList.remove('visible');
     nymToast('Création des grilles annulée.');
   });
-  document.getElementById('nymGrilleValider').addEventListener('click', function(){
+  nymSafeListen('nymGrilleValider','click', function(){
     const lettre=document.getElementById('nymFGrilleLettre').value;
     const bac=parseInt(document.getElementById('nymFGrilleBac').value,10);
     if(!lettre||!bac){nymToast('Veuillez choisir une lettre et un bac.');return;}
@@ -2779,10 +2785,10 @@ function nymAttacherEvenements(){
     if(nymGrilleEnCoursIndex<nymFileGrillesACreer.length){ setTimeout(nymOuvrirCreationGrilleSuivante,200); }
   });
 
-  document.getElementById('nymModGrilleAnnuler').addEventListener('click', function(){
+  nymSafeListen('nymModGrilleAnnuler','click', function(){
     document.getElementById('nymOvModifierGrille').classList.remove('visible');
   });
-  document.getElementById('nymModGrilleValider').addEventListener('click', function(){
+  nymSafeListen('nymModGrilleValider','click', function(){
     const g=NYM_DB.grillesCreees.find(function(x){return x.id===nymModGrilleId;});
     if(!g) return;
     const ancienneLettre=g.lettre, ancienBac=g.bac;
@@ -2802,11 +2808,11 @@ function nymAttacherEvenements(){
     nymToast('Grille mise à jour : '+g.lettre+' / Bac n°'+g.bac);
   });
 
-  document.getElementById('nymCorpsTableau').addEventListener('click', function(e){
+  nymSafeListen('nymCorpsTableau','click', function(e){
     const btn=e.target.closest('[data-action="modifier"]');
     if(btn) nymOuvrirModifier(btn.dataset.id);
   });
-  document.getElementById('nymZoneGrillesCreees').addEventListener('click', function(e){
+  nymSafeListen('nymZoneGrillesCreees','click', function(e){
     const btn=e.target.closest('[data-action="modifier-grille"]');
     if(btn) nymOuvrirModifierGrille(btn.dataset.id);
   });
