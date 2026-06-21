@@ -2260,10 +2260,11 @@ function nymBacsUtilisesColeopteres(){
         if(l.c1&&l.c1.bac) used.push(l.c1.bac);
         if(l.c2&&l.c2.bac) used.push(l.c2.bac);
         if(l.c3&&l.c3.bac) used.push(l.c3.bac);
+        if(l.c4&&l.c4.bac) used.push(l.c4.bac);
         if(l.bac) used.push(l.bac);
       });
     }
-    return used;
+    return used.map(function(n){return parseInt(n,10);});
   }catch(e){ return []; }
 }
 function nymBacsDisponiblesNymphes(excludeLotId){
@@ -2689,8 +2690,8 @@ function nymAttacherEvenements(){
   });
 
   nymSafeListen('nymBtnTrier','click', function(){
-    const dispo=NYM_DB.lots;
-    if(!dispo.length){nymToast('Aucun bac disponible à trier.');return;}
+    const dispo=NYM_DB.lots.filter(function(l){return (parseFloat(l.poids)||0) > 0;});
+    if(!dispo.length){nymToast('Aucun bac disponible à trier (tous les bacs sont à 0 g).');return;}
     const cl=document.getElementById('nymTrierChecklist');
     cl.innerHTML=dispo.map(function(l){
       const nbTris=(l.tris&&l.tris.length)||0;
