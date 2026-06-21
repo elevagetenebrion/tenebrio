@@ -2288,8 +2288,8 @@ function nymRemplirSelectBacs(select, excludeLotId, valeurActuelle){
   });
 }
 function nymBacsDisponiblesColeopteresPourGrille(){
-  const u1=nymBacsUtilisesColeopteres();
-  const u2=NYM_DB.grillesCreees.map(function(g){return g.bac;});
+  const u1=nymBacsUtilisesColeopteres().map(function(n){return parseInt(n,10);});
+  const u2=NYM_DB.grillesCreees.map(function(g){return parseInt(g.bac,10);});
   const utilises=new Set(u1.concat(u2));
   const dispo=[];
   for(let i=1;i<=BAC_MAX;i++){ if(!utilises.has(i)) dispo.push(i); }
@@ -2405,8 +2405,14 @@ function nymRenderGrillesCreees(){
     return;
   }
   zone.innerHTML=NYM_DB.grillesCreees.map(function(g){
+    if (g.enAttente) {
+      const manque = NYM_SEUIL_GRILLE_G - g.poidsActuel;
+      return '<div class="nym-grille-chip" data-id="'+g.id+'" style="border-color:#dd6b20;background:#fffaf0;">'+
+        '<span class="grille-info" style="color:#9a4a00;">⏳ En attente — '+g.poidsActuel+' g / 300 g (manque '+manque+' g)</span>'+
+        '</div>';
+    }
     return '<div class="nym-grille-chip" data-id="'+g.id+'">'+
-      '<span class="grille-info">Grille '+g.lettre+' — Bac n°'+g.bac+'</span>'+
+      '<span class="grille-info">✓ Grille '+g.lettre+' — Bac n°'+g.bac+' (300 g)</span>'+
       '<button data-action="modifier-grille" data-id="'+g.id+'">✏️</button>'+
       '</div>';
   }).join('');
@@ -2496,12 +2502,61 @@ function nymVerifierPlafondTri(){
   }
 }
 
-function nymOuvrirCreationGrilleSuivante(){
-  if(nymGrilleEnCoursIndex>=nymFileGrillesACreer.length){
-    nymToast('Toutes les grilles ont été créées.');
-    return;
+/* ══ GESTION DE LA GRILLE EN ATTENTE (accumulation jusqu'à 300g) ══ */
+function nymGetGrilleEnAttente(){
+  return NYM_DB.grillesCreees.find(function(g){ return g.enAttente===true; }) || null;
+}
+
+function nymTraiterPoidsColeoVersGrille(poidsAjoute){
+  let restant = poidsAjoute;
+  let attente = nymGetGrilleEnAttente();
+
+  if (attente) {
+    const espaceLibre = NYM_SEUIL_GRILLE_G - attente.poidsActuel;
+    const aAjouter = Math.min(espaceLibre, restant);
+    attente.poidsActuel += aAjouter;
+    restant -= aAjouter;
+    nymSauverDB(NYM_DB); nymRenderGrillesCreees();
+
+    if (attente.poidsActuel >= NYM_SEUIL_GRILLE_G) {
+      nymOuvrirCreationGrillePourAttente(attente);
+      // Le reste éventuel (si poidsAjoute dépassait) sera traité après confirmation lettre/bac
+      if (restant > 0) {
+        window._nymResteApresGrille = restant;
+      }
+      return;
+    }
+  } else if (restant > 0) {
+    // Pas de grille en attente : en créer une nouvelle avec le poids actuel
+    if (restant >= NYM_SEUIL_GRILLE_G) {
+      const nouvelleAttente = { id: nymGenId(), enAttente:true, poidsActuel: NYM_SEUIL_GRILLE_G, lettre:null, bac:null, date: nymTriContexte?nymTriContexte.date:nymTodayISO() };
+      NYM_DB.grillesCreees.push(nouvelleAttente);
+      restant -= NYM_SEUIL_GRILLE_G;
+      nymSauverDB(NYM_DB); nymRenderGrillesCreees();
+      nymOuvrirCreationGrillePourAttente(nouvelleAttente);
+      if (restant > 0) window._nymResteApresGrille = restant;
+      return;
+    } else {
+      const nouvelleAttente = { id: nymGenId(), enAttente:true, poidsActuel: restant, lettre:null, bac:null, date: nymTriContexte?nymTriContexte.date:nymTodayISO() };
+      NYM_DB.grillesCreees.push(nouvelleAttente);
+      nymSauverDB(NYM_DB); nymRenderGrillesCreees();
+      nymToast('Grille en attente créée : '+restant+' g / 300 g (manque '+(NYM_SEUIL_GRILLE_G-restant)+' g).');
+      return;
+    }
   }
-  document.getElementById('nymCreerGrilleRecap').innerHTML='Tranche '+(nymGrilleEnCoursIndex+1)+' / '+nymFileGrillesACreer.length+' — 300 g de coléoptères';
+
+  if (restant > 0) {
+    // Reliquat à traiter en récursif (cas rare où poidsAjoute > 300g d'un coup)
+    nymTraiterPoidsColeoVersGrille(restant);
+  } else {
+    nymToast('Poids ajouté à la grille en attente : '+poidsAjoute+' g.');
+  }
+}
+
+let nymGrillePourValidation = null;
+function nymOuvrirCreationGrillePourAttente(grilleAttente){
+  nymGrillePourValidation = grilleAttente;
+  document.getElementById('nymCreerGrilleRecap').innerHTML = 'Grille complète : <b>'+grilleAttente.poidsActuel+' g</b> — Choisissez sa lettre et son numéro de bac pour la transmettre aux Coléoptères.';
   nymRemplirSelectLettres(document.getElementById('nymFGrilleLettre'), null);
   nymRemplirSelectBacsGrille(document.getElementById('nymFGrilleBac'), null);
   document.getElementById('nymOvCreerGrille').classList.add('visible');
@@ -2534,8 +2589,9 @@ function nymRemplirSelectLettresAvecActuelle(select, lettreActuelle){
   });
 }
 function nymRemplirSelectBacsGrilleAvecActuel(select, bacActuel){
-  const u1=nymBacsUtilisesColeopteres();
-  const u2=NYM_DB.grillesCreees.filter(function(g){return g.bac!==bacActuel;}).map(function(g){return g.bac;});
+  bacActuel = parseInt(bacActuel, 10);
+  const u1=nymBacsUtilisesColeopteres().map(function(n){return parseInt(n,10);});
+  const u2=NYM_DB.grillesCreees.filter(function(g){return parseInt(g.bac,10)!==bacActuel;}).map(function(g){return parseInt(g.bac,10);});
   const utilises=new Set(u1.concat(u2));
   select.innerHTML='';
   const dispo=[];
@@ -2758,32 +2814,38 @@ function nymAttacherEvenements(){
     });
     nymSauverDB(NYM_DB); nymRenderTableau();
     document.getElementById('nymOvTrierResultats').classList.remove('visible');
-    const nbGrillesCompletes=Math.floor(nymTriPoidsColeo/NYM_SEUIL_GRILLE_G);
-    const reste=nymTriPoidsColeo%NYM_SEUIL_GRILLE_G;
-    nymFileGrillesACreer=[];
-    for(let i=0;i<nbGrillesCompletes;i++) nymFileGrillesACreer.push(NYM_SEUIL_GRILLE_G);
-    nymGrilleEnCoursIndex=0;
-    if(nbGrillesCompletes===0){ nymToast('⚠️ Poids insuffisant (< 300 g) : aucune grille créée.'); return; }
-    if(reste>0){ nymToast(nbGrillesCompletes+' grille(s) de 300 g à créer. Reste '+reste+' g (non attribué).'); }
-    nymOuvrirCreationGrilleSuivante();
+    nymTraiterPoidsColeoVersGrille(nymTriPoidsColeo);
   });
 
   nymSafeListen('nymGrilleAnnuler','click', function(){
     document.getElementById('nymOvCreerGrille').classList.remove('visible');
-    nymToast('Création des grilles annulée.');
+    nymGrillePourValidation = null;
+    nymToast('Création annulée. La grille reste en attente (300 g prête à être attribuée).');
   });
   nymSafeListen('nymGrilleValider','click', function(){
     const lettre=document.getElementById('nymFGrilleLettre').value;
     const bac=parseInt(document.getElementById('nymFGrilleBac').value,10);
     if(!lettre||!bac){nymToast('Veuillez choisir une lettre et un bac.');return;}
-    const grille={id:nymGenId(),lettre:lettre,bac:bac,date:nymTriContexte?nymTriContexte.date:nymTodayISO(),poids:NYM_SEUIL_GRILLE_G};
-    NYM_DB.grillesCreees.push(grille);
+    if(!nymGrillePourValidation){ document.getElementById('nymOvCreerGrille').classList.remove('visible'); return; }
+
+    // Finaliser la grille en attente : devient une grille transmise
+    nymGrillePourValidation.lettre = lettre;
+    nymGrillePourValidation.bac = bac;
+    nymGrillePourValidation.poids = NYM_SEUIL_GRILLE_G;
+    nymGrillePourValidation.enAttente = false;
     nymSauverDB(NYM_DB); nymRenderGrillesCreees();
-    nymTransmettreVersColeopteres(grille);
-    nymToast('Grille '+lettre+' / Bac n°'+bac+' créée et transmise.');
-    nymGrilleEnCoursIndex++;
+    nymTransmettreVersColeopteres(nymGrillePourValidation);
+    nymToast('Grille '+lettre+' / Bac n°'+bac+' (300 g) créée et transmise aux Coléoptères.');
+
     document.getElementById('nymOvCreerGrille').classList.remove('visible');
-    if(nymGrilleEnCoursIndex<nymFileGrillesACreer.length){ setTimeout(nymOuvrirCreationGrilleSuivante,200); }
+    nymGrillePourValidation = null;
+
+    // Traiter le reliquat éventuel (excédent au-delà de 300g)
+    if (window._nymResteApresGrille && window._nymResteApresGrille > 0) {
+      const reste = window._nymResteApresGrille;
+      window._nymResteApresGrille = 0;
+      setTimeout(function(){ nymTraiterPoidsColeoVersGrille(reste); }, 200);
+    }
   });
 
   nymSafeListen('nymModGrilleAnnuler','click', function(){
