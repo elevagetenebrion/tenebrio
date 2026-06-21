@@ -2267,10 +2267,43 @@ function nymBacsUtilisesColeopteres(){
     return used.map(function(n){return parseInt(n,10);});
   }catch(e){ return []; }
 }
+
+/* Vérifie les numéros de bac utilisés dans TOUS les tableaux de l'application
+   (Coléoptères, Nymphes, Larves, Œufs) — pour éviter tout doublon global */
+function nymBacsUtilisesPartout(excludeNymLotId){
+  const used = nymBacsUtilisesColeopteres();
+
+  // Nymphes (lots actuels en mémoire)
+  if (excludeNymLotId !== undefined) {
+    NYM_DB.lots.forEach(function(l){ if(l.id!==excludeNymLotId && l.bac) used.push(parseInt(l.bac,10)); });
+  } else if (NYM_DB && NYM_DB.lots) {
+    NYM_DB.lots.forEach(function(l){ if(l.bac) used.push(parseInt(l.bac,10)); });
+  }
+
+  // Larves
+  try{
+    const rawLar = localStorage.getItem('larves_v7');
+    if (rawLar) {
+      const larLots = JSON.parse(rawLar) || [];
+      if (Array.isArray(larLots)) larLots.forEach(function(l){ if(l.bac) used.push(parseInt(l.bac,10)); });
+    }
+  }catch(e){}
+
+  // Œufs (ponte) — bacs actifs uniquement (non sortis, non fusionnés)
+  try{
+    const rawPonte = localStorage.getItem('ponte_v1');
+    if (rawPonte) {
+      const ponteLignes = JSON.parse(rawPonte) || [];
+      if (Array.isArray(ponteLignes)) ponteLignes.forEach(function(l){
+        if (l.bac && !l.sorti && !l.fusionne) used.push(parseInt(l.bac,10));
+      });
+    }
+  }catch(e){}
+
+  return used.filter(function(n){ return !isNaN(n); });
+}
 function nymBacsDisponiblesNymphes(excludeLotId){
-  const u1=nymBacsUtilisesNymphes(excludeLotId);
-  const u2=nymBacsUtilisesColeopteres();
-  const utilises=new Set(u1.concat(u2));
+  const utilises=new Set(nymBacsUtilisesPartout(excludeLotId));
   const dispo=[];
   for(let i=1;i<=BAC_MAX;i++){ if(!utilises.has(i)) dispo.push(i); }
   return dispo;
@@ -2288,8 +2321,8 @@ function nymRemplirSelectBacs(select, excludeLotId, valeurActuelle){
   });
 }
 function nymBacsDisponiblesColeopteresPourGrille(){
-  const u1=nymBacsUtilisesColeopteres().map(function(n){return parseInt(n,10);});
-  const u2=NYM_DB.grillesCreees.map(function(g){return parseInt(g.bac,10);});
+  const u1=nymBacsUtilisesPartout();
+  const u2=NYM_DB.grillesCreees.filter(function(g){return !g.enAttente;}).map(function(g){return parseInt(g.bac,10);});
   const utilises=new Set(u1.concat(u2));
   const dispo=[];
   for(let i=1;i<=BAC_MAX;i++){ if(!utilises.has(i)) dispo.push(i); }
@@ -2472,8 +2505,11 @@ let nymTriContexte=null;
 let nymModGrilleId=null;
 
 function nymRemplirSelectBacsGrilleFusion(select){
-  const utilises=new Set(nymBacsUtilisesColeopteres());
-  NYM_DB.lots.forEach(function(l){ if(nymFusionSelection.indexOf(l.id)===-1) utilises.add(l.bac); });
+  const utilises=new Set(nymBacsUtilisesPartout().filter(function(n){
+    // Exclure les bacs nymphes en cours de fusion (ils seront supprimés et leur numéro libéré)
+    const lot = NYM_DB.lots.find(function(l){ return parseInt(l.bac,10)===n && nymFusionSelection.indexOf(l.id)!==-1; });
+    return !lot;
+  }));
   select.innerHTML='';
   const dispo=[];
   for(let i=1;i<=BAC_MAX;i++){ if(!utilises.has(i)) dispo.push(i); }
@@ -2590,8 +2626,8 @@ function nymRemplirSelectLettresAvecActuelle(select, lettreActuelle){
 }
 function nymRemplirSelectBacsGrilleAvecActuel(select, bacActuel){
   bacActuel = parseInt(bacActuel, 10);
-  const u1=nymBacsUtilisesColeopteres().map(function(n){return parseInt(n,10);});
-  const u2=NYM_DB.grillesCreees.filter(function(g){return parseInt(g.bac,10)!==bacActuel;}).map(function(g){return parseInt(g.bac,10);});
+  const u1=nymBacsUtilisesPartout();
+  const u2=NYM_DB.grillesCreees.filter(function(g){return !g.enAttente && parseInt(g.bac,10)!==bacActuel;}).map(function(g){return parseInt(g.bac,10);});
   const utilises=new Set(u1.concat(u2));
   select.innerHTML='';
   const dispo=[];
