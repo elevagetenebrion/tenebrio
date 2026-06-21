@@ -494,6 +494,18 @@
 .nym-kp-effacer{background:#e8e4d8;color:var(--ntexte);}
 .nym-kp-annuler{background:var(--nrouge);color:#fff;}
 .nym-kp-valider{background:var(--nvert);color:#fff;}
+.nym-sim-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#1a1a2e;border:2px solid #4a3fa0;border-radius:10px;padding:9px 14px;margin-bottom:14px;max-width:560px;margin-left:auto;margin-right:auto;}
+.nym-dot-real{width:8px;height:8px;border-radius:50%;background:#50a060;flex-shrink:0;}
+.nym-dot-active{width:8px;height:8px;border-radius:50%;background:#7060e0;flex-shrink:0;box-shadow:0 0 5px #7060e0;animation:nym-pdot 1.4s ease-in-out infinite;}
+@keyframes nym-pdot{0%,100%{opacity:1}50%{opacity:.3}}
+.nym-sim-lbl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#a090e0;flex-shrink:0;}
+.nym-sim-badge{background:#2e2a50;border:1.5px solid #6050c0;border-radius:6px;padding:4px 10px;font-family:'IBM Plex Mono',monospace;font-size:.82rem;font-weight:700;color:#c0b0ff;}
+.nym-sim-bar input[type=date]{background:#2e2a50;border:1.5px solid #6050c0;border-radius:6px;padding:4px 9px;font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:#c0b0ff;outline:none;}
+.nym-sim-ctrl{display:flex;gap:5px;flex-wrap:wrap;}
+.nym-sb{background:#2e2a50;border:1.5px solid #6050c0;border-radius:6px;padding:4px 10px;font-size:.75rem;font-weight:700;color:#c0b0ff;cursor:pointer;font-family:'IBM Plex Mono',monospace;}
+.nym-sb:hover{background:#4a3fa0;}
+.nym-sb-ok{background:#1a3a20;border-color:#50a060;color:#90e0a0;}
+.nym-sb-rst{background:#3a2020;border-color:#a05050;color:#e0a0a0;}
 
   /* ══ LARVES ══ */
 #page-larves {
@@ -1631,6 +1643,7 @@ function colBacsUtilises(){
     if(lot.c1?.bac) u.add(+lot.c1.bac);
     if(lot.c2?.bac) u.add(+lot.c2.bac);
     if(lot.c3?.bac) u.add(+lot.c3.bac);
+    if(lot.c4?.bac) u.add(+lot.c4.bac);
   });
   return u;
 }
@@ -1752,7 +1765,6 @@ function colConfirmerAlerte(id,cycle,type){
     if(cyc)cyc.done_chg=true;
     colSauver();
     if(cycle<4){colOuvrirModalChg(lot,cycle+1);return;}
-    if(cycle===4&&!lot.c4) lot.c4={done_sec:false,done_deshy:false};
   } else if(type==='oeufs'){
     if(cyc)cyc.oeufsConfirmes=true;
   } else if(type==='deshy'){
@@ -1782,16 +1794,20 @@ function colConfirmerModalChg(){
   const n=parseInt(bac,10);
   const u=colBacsUtilises();
   if(u.has(n)){alert('Bac '+n+' déjà utilisé.');return;}
-  if(!colModalChgLot['c'+colModalChgCycle]) colModalChgLot['c'+colModalChgCycle]={bac:null,done_sec:false,done_chg:false};
-  colModalChgLot['c'+colModalChgCycle].bac=n;
-  colModalChgLot['c'+colModalChgCycle].dateDebut=date;
+  if(colModalChgCycle===4){
+    colModalChgLot.c4={bac:n,done_sec:false,done_deshy:false,dateDebut:date};
+  } else {
+    if(!colModalChgLot['c'+colModalChgCycle]) colModalChgLot['c'+colModalChgCycle]={bac:null,done_sec:false,done_chg:false};
+    colModalChgLot['c'+colModalChgCycle].bac=n;
+    colModalChgLot['c'+colModalChgCycle].dateDebut=date;
+  }
   colSauver();colPeuplerBacs();colFermerModalChg();colRafraichir();
 }
 
 /* Tableau */
 function colRafraichirTableau(){
   const tbody=document.getElementById('colMainTbody'); if(!tbody)return;
-  if(!colLots.length){tbody.innerHTML='<tr><td colspan="19" class="col-empty-state">Aucun lot enregistré</td></tr>';return;}
+  if(!colLots.length){tbody.innerHTML='<tr><td colspan="20" class="col-empty-state">Aucun lot enregistré</td></tr>';return;}
   const auj=colAujourdHui();
   const sorted=[...colLots].sort((a,b)=>a.dateEntree.localeCompare(b.dateEntree));
   tbody.innerHTML='';
@@ -1822,11 +1838,12 @@ function colRafraichirTableau(){
     }else{h+='<td colspan="4" style="color:#d1d5db;font-size:.7rem;">—</td>';}
     if(lot.c4){
       const d4s=colDateSecouage(lot,4),d4d=colDateDeshy(lot);
+      h+='<td class="col-poids-cell">'+(lot.c4.bac||'?')+'</td>';
       h+='<td class="'+ac(d4s,lot.c4.done_sec)+'">'+colAffDate(d4s)+'</td>';
       h+='<td class="'+ac(d4d,lot.c4.done_deshy)+'">'+colAffDate(d4d)+'</td>';
       h+='<td class="col-deshy-cell">'+(lot.c4.done_deshy?'✔ Déshy.':'En attente')+'</td>';
       h+='<td><button class="col-btn-supp" onclick="colOuvrirModalSupp('+lot.id+',4)">✕</button></td>';
-    }else{h+='<td colspan="4" style="color:#d1d5db;font-size:.7rem;">—</td>';}
+    }else{h+='<td colspan="5" style="color:#d1d5db;font-size:.7rem;">—</td>';}
     tr.innerHTML=h; tbody.appendChild(tr);
   });
 }
@@ -1934,7 +1951,7 @@ function ponteTousNumerosUtilises(excludeUids) {
 function ponteRemplirSelectLibres(selectEl, excludeUids) {
   var utilises = ponteTousNumerosUtilises(excludeUids||[]);
   selectEl.innerHTML = '<option value="">-- Choisir --</option>';
-  for(var i=1;i<=170;i++){
+  for(var i=1;i<=BAC_MAX;i++){
     if(utilises.indexOf(String(i))===-1){
       var opt=document.createElement('option');
       opt.value=i; opt.textContent=i;
@@ -1974,6 +1991,16 @@ function ponteSyncAuto() {
       lignes.push({uid,dateEntree,dateSortie:ponteAddDays(dateEntree,10),bac:String(cyc.bac),bacFusion:null,fusionne:false,sorti:false,source:'auto'});
       bacsExistants.push(String(cyc.bac));
     });
+    // Cycle 4 : entre dans Œufs seulement après confirmation du secouage (+10j après le début du cycle 4)
+    if (lot.c4 && lot.c4.bac && lot.c4.done_sec) {
+      var uid4 = 'col_'+(lot.id||lot.dateEntree)+'_c4';
+      if (uids.indexOf(uid4) === -1 && bacsExistants.indexOf(String(lot.c4.bac)) === -1) {
+        var dateDebut4 = lot.c4.dateDebut || ponteAddDays(lot.dateEntree, 40);
+        var dateEntree4 = ponteAddDays(dateDebut4, 10);
+        lignes.push({uid:uid4, dateEntree:dateEntree4, dateSortie:ponteAddDays(dateEntree4,10), bac:String(lot.c4.bac), bacFusion:null, fusionne:false, sorti:false, source:'auto'});
+        bacsExistants.push(String(lot.c4.bac));
+      }
+    }
   });
   ponteSavePonte(lignes);
 }
@@ -2036,11 +2063,36 @@ document.addEventListener('click', function(e){
   }
 });
 
-function ponteConfirmSortie(){
+async function ponteTransfererVersLarves(bacNum, dateSortie) {
+  var larRaw = await fbSafeLoad('larves_v7', null);
+  if (larRaw === null) {
+    try { larRaw = JSON.parse(localStorage.getItem('larves_v7')) || []; }
+    catch(e) { larRaw = []; }
+  }
+  var bacsExistants = larRaw.map(function(r){ return String(r.bac); });
+  if (bacsExistants.indexOf(String(bacNum)) !== -1) return; // déjà présent, éviter doublon
+  larRaw.push({ dateEntree: dateSortie, bac: String(bacNum), v00:null, v0:null, v20:null, v12:null, v10:null, v08:null, origine:'tri_oeufs' });
+  localStorage.setItem('larves_v7', JSON.stringify(larRaw));
+  await fbSafeSave('larves_v7', larRaw);
+}
+
+async function ponteConfirmSortie(){
   if(!pontePendingSortieUid) return;
   var lignes=ponteLoadPonte();
-  lignes.forEach(function(l){if(l.uid===pontePendingSortieUid)l.sorti=true;});
-  ponteSavePonte(lignes); ponteFermerModal('ponteModalSortie'); ponteRender();
+  var bacSorti=null, dateSortieVal=null;
+  lignes.forEach(function(l){
+    if(l.uid===pontePendingSortieUid){
+      l.sorti=true;
+      bacSorti=l.bac;
+      dateSortieVal=ponteToday();
+    }
+  });
+  ponteSavePonte(lignes);
+  ponteFermerModal('ponteModalSortie'); ponteRender();
+  if (bacSorti) {
+    await ponteTransfererVersLarves(bacSorti, dateSortieVal);
+    if (typeof showToast === 'function') showToast('Bac '+bacSorti+' transféré vers Larves.');
+  }
 }
 
 function ponteOuvrirFusion(uid){
@@ -2163,7 +2215,26 @@ async function nymSyncFromCloud(){
 let NYM_DB = null;
 
 function nymGenId(){ return 'lot_'+Date.now()+'_'+Math.floor(Math.random()*10000); }
-function nymTodayISO(){ return new Date().toISOString().slice(0,10); }
+let NYM_SIM_OFF = 0;
+function nymSimD(){ const d=new Date(); d.setDate(d.getDate()+NYM_SIM_OFF); return d; }
+function nymTodayISO(){ return nymSimD().toISOString().slice(0,10); }
+function nymRefreshSim(){
+  const sd=document.getElementById('nymSimDisplay'); if(!sd) return;
+  sd.textContent = nymSimD().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('nymSimDateInput').value = nymTodayISO();
+  document.getElementById('nymSimDot').className = NYM_SIM_OFF===0?'nym-dot-real':'nym-dot-active';
+}
+function nymShiftSim(n){ NYM_SIM_OFF+=n; nymRefreshSim(); }
+function nymResetSim(){ NYM_SIM_OFF=0; nymRefreshSim(); }
+function nymApplySimInput(){
+  const v=document.getElementById('nymSimDateInput').value;
+  if(v){
+    const target=new Date(v+'T00:00:00');
+    const now=new Date(); now.setHours(0,0,0,0);
+    NYM_SIM_OFF=Math.round((target-now)/86400000);
+    nymRefreshSim();
+  }
+}
 function nymFormatDateFR(iso){ if(!iso) return '—'; const p=iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
 function nymToast(msg){
   const t=document.getElementById('toast');
@@ -2276,17 +2347,40 @@ function nymRenderTableau(){
   const lots=NYM_DB.lots.slice().sort(function(a,b){return (a.dateEntree||'').localeCompare(b.dateEntree||'');});
   tbody.innerHTML=lots.map(function(l){
     const trie=l.tri && l.tri.date;
-    const bacsTries=trie?(l.tri.bacs||[l.bac]).join(', '):'<span class="nym-vide-cell">—</span>';
-    let html='<tr class="'+(trie?'nym-ligne-triee':'')+'" data-id="'+l.id+'">';
-    html+='<td>'+nymFormatDateFR(l.dateEntree)+'</td>';
-    html+='<td><span class="nym-badge-bac">'+l.bac+'</span></td>';
-    html+='<td class="nym-poids-val">'+l.poids+'</td>';
-    html+='<td>'+(trie?nymFormatDateFR(l.tri.date):'<span class="nym-vide-cell">—</span>')+'</td>';
-    html+='<td>'+bacsTries+'</td>';
-    html+='<td>'+(trie?('<span class="nym-poids-val">'+l.tri.poidsColeo+'</span>'):'<span class="nym-vide-cell">—</span>')+'</td>';
-    html+='<td>'+(trie?('<span class="nym-morts-val">'+l.tri.morts+'</span>'):'<span class="nym-vide-cell">—</span>')+'</td>';
-    html+='<td class="action-cell">'+(trie?'':'<button class="nym-btn-modifier" data-action="modifier" data-id="'+l.id+'">✏️</button>')+'</td>';
-    html+='</tr>';
+    const tris=l.tris||(trie?[l.tri]:[]);
+    const nbTris=tris.length;
+    let html='';
+    if(nbTris===0){
+      html+='<tr data-id="'+l.id+'">';
+      html+='<td>'+nymFormatDateFR(l.dateEntree)+'</td>';
+      html+='<td><span class="nym-badge-bac">'+l.bac+'</span></td>';
+      html+='<td class="nym-poids-val">'+l.poids+'</td>';
+      html+='<td><span class="nym-vide-cell">—</span></td>';
+      html+='<td><span class="nym-vide-cell">—</span></td>';
+      html+='<td><span class="nym-vide-cell">—</span></td>';
+      html+='<td><span class="nym-vide-cell">—</span></td>';
+      html+='<td class="action-cell"><button class="nym-btn-modifier" data-action="modifier" data-id="'+l.id+'">✏️</button></td>';
+      html+='</tr>';
+    } else {
+      tris.forEach(function(t, idx){
+        const bacsTries=(t.bacs||[l.bac]).join(', ');
+        const isLast=idx===nbTris-1;
+        html+='<tr class="nym-ligne-triee" data-id="'+l.id+'">';
+        if(idx===0){
+          html+='<td rowspan="'+nbTris+'">'+nymFormatDateFR(l.dateEntree)+'</td>';
+          html+='<td rowspan="'+nbTris+'"><span class="nym-badge-bac">'+l.bac+'</span></td>';
+          html+='<td rowspan="'+nbTris+'" class="nym-poids-val">'+l.poids+' <span style="font-size:.65rem;color:#6b6b6b;">(restant)</span></td>';
+        }
+        html+='<td>'+nymFormatDateFR(t.date)+' <span style="font-size:.65rem;color:#9a7818;">(tri '+(idx+1)+'/'+nbTris+')</span></td>';
+        html+='<td>'+bacsTries+'</td>';
+        html+='<td><span class="nym-poids-val">'+t.poidsColeo+'</span></td>';
+        html+='<td><span class="nym-morts-val">'+t.morts+'</span></td>';
+        if(idx===0){
+          html+='<td rowspan="'+nbTris+'" class="action-cell"><span class="nym-vide-cell">Verrouillé</span></td>';
+        }
+        html+='</tr>';
+      });
+    }
     return html;
   }).join('');
   nymRenderCompteur();
@@ -2294,10 +2388,11 @@ function nymRenderTableau(){
   const trisVus=new Set();
   let totalMorts=0;
   lots.forEach(function(l){
-    if(l.tri&&l.tri.date){
-      const cle=l.tri.date+'|'+(l.tri.bacs||[]).join(',')+'|'+l.tri.morts;
-      if(!trisVus.has(cle)){ trisVus.add(cle); totalMorts+=l.tri.morts; }
-    }
+    const allTris=l.tris||(l.tri&&l.tri.date?[l.tri]:[]);
+    allTris.forEach(function(t){
+      const cle=t.date+'|'+(t.bacs||[]).join(',')+'|'+t.morts+'|'+l.id;
+      if(!trisVus.has(cle)){ trisVus.add(cle); totalMorts+=t.morts; }
+    });
   });
   const tm=document.getElementById('nymTotalMorts'); if(tm) tm.textContent=totalMorts+' g';
 }
@@ -2458,6 +2553,15 @@ function nymAttacherEvenements(){
   if(window._nymEventsAttached) return;
   window._nymEventsAttached = true;
 
+  document.getElementById('nymBM15').addEventListener('click', function(){nymShiftSim(-15);});
+  document.getElementById('nymBM1').addEventListener('click', function(){nymShiftSim(-1);});
+  document.getElementById('nymBP1').addEventListener('click', function(){nymShiftSim(1);});
+  document.getElementById('nymBP15').addEventListener('click', function(){nymShiftSim(15);});
+  document.getElementById('nymBP30').addEventListener('click', function(){nymShiftSim(30);});
+  document.getElementById('nymBApply').addEventListener('click', nymApplySimInput);
+  document.getElementById('nymBReset').addEventListener('click', nymResetSim);
+  document.getElementById('nymSimDateInput').addEventListener('keydown', function(e){if(e.key==='Enter')nymApplySimInput();});
+
   document.getElementById('nymKeypadPanel').addEventListener('click', function(e){e.stopPropagation();});
   document.getElementById('nymKeypadOverlay').addEventListener('click', function(){nymFermerPave();});
   document.querySelectorAll('.nym-keypad-grid button').forEach(function(btn){
@@ -2579,11 +2683,13 @@ function nymAttacherEvenements(){
   });
 
   document.getElementById('nymBtnTrier').addEventListener('click', function(){
-    const dispo=NYM_DB.lots.filter(function(l){return !(l.tri&&l.tri.date);});
+    const dispo=NYM_DB.lots;
     if(!dispo.length){nymToast('Aucun bac disponible à trier.');return;}
     const cl=document.getElementById('nymTrierChecklist');
     cl.innerHTML=dispo.map(function(l){
-      return '<label class="nym-check-item"><input type="checkbox" value="'+l.id+'" class="nym-trier-check"/> Bac n°'+l.bac+' — '+nymFormatDateFR(l.dateEntree)+' — '+l.poids+' g</label>';
+      const nbTris=(l.tris&&l.tris.length)||0;
+      const badge=nbTris>0?(' <span style="color:#3a7d44;font-weight:700;">(déjà trié '+nbTris+'x)</span>'):'';
+      return '<label class="nym-check-item"><input type="checkbox" value="'+l.id+'" class="nym-trier-check"/> Bac n°'+l.bac+' — '+nymFormatDateFR(l.dateEntree)+' — '+l.poids+' g'+badge+'</label>';
     }).join('');
     document.getElementById('nymTrierRecap').innerHTML='Poids total des nymphes sélectionnées : <b>0 g</b>';
     document.getElementById('nymOvTrierListe').classList.add('visible');
@@ -2634,7 +2740,14 @@ function nymAttacherEvenements(){
     nymTriContexte={date:date,bacsTries:bacsTries,poidsColeo:nymTriPoidsColeo,morts:nymTriPoidsMorts};
     nymTrierSelection.forEach(function(id){
       const l=NYM_DB.lots.find(function(x){return x.id===id;});
-      if(l) l.tri={date:date,bacs:bacsTries,poidsColeo:nymTriPoidsColeo,morts:nymTriPoidsMorts};
+      if(l) {
+        const triEntry={date:date,bacs:bacsTries,poidsColeo:nymTriPoidsColeo,morts:nymTriPoidsMorts};
+        if(!l.tris) l.tris=[];
+        l.tris.push(triEntry);
+        l.tri=triEntry; // dernier tri (compatibilité affichage)
+        // Déduire le poids trié (coléoptères + morts) du poids restant du bac
+        l.poids = Math.max(0, (parseFloat(l.poids)||0) - nymTriPoidsColeo - nymTriPoidsMorts);
+      }
     });
     nymSauverDB(NYM_DB); nymRenderTableau();
     document.getElementById('nymOvTrierResultats').classList.remove('visible');
@@ -2702,6 +2815,7 @@ function nymAttacherEvenements(){
 function initNymphesPage(){
   NYM_DB = nymChargerDB();
   nymAttacherEvenements();
+  nymRefreshSim();
   nymRenderTableau();
   nymRenderGrillesCreees();
 }
@@ -3273,17 +3387,17 @@ async function resetAllData() {
           <th colspan="6" class="col-c1-head">CYCLE 1</th>
           <th colspan="4" class="col-c2-head">CYCLE 2</th>
           <th colspan="4" class="col-c3-head">CYCLE 3</th>
-          <th colspan="4" class="col-c4-head">CYCLE 4</th>
+          <th colspan="5" class="col-c4-head">CYCLE 4</th>
         </tr>
         <tr>
           <th class="col-c1-sub">Grille</th><th class="col-c1-sub">N° Bac</th><th class="col-c1-sub">Poids (g)</th>
           <th class="col-c1-sub">+5j Secouage</th><th class="col-c1-sub">+10j Chg. bac</th><th class="col-c1-sub">Suppr.</th>
           <th class="col-c2-sub">Nouveau bac</th><th class="col-c2-sub">+5j Secouage</th><th class="col-c2-sub">+10j Chg. bac</th><th class="col-c2-sub">Suppr.</th>
           <th class="col-c3-sub">Nouveau bac</th><th class="col-c3-sub">+5j Secouage</th><th class="col-c3-sub">+10j Chg. bac</th><th class="col-c3-sub">Suppr.</th>
-          <th class="col-c4-sub">+5j Secouage</th><th class="col-c4-sub">+10j Déshy.</th><th class="col-c4-sub">Déshydratation</th><th class="col-c4-sub">Suppr.</th>
+          <th class="col-c4-sub">Nouveau bac</th><th class="col-c4-sub">+5j Secouage</th><th class="col-c4-sub">+10j Déshy.</th><th class="col-c4-sub">Déshydratation</th><th class="col-c4-sub">Suppr.</th>
         </tr>
       </thead>
-      <tbody id="colMainTbody"><tr><td colspan="19" class="col-empty-state">Aucun lot enregistré</td></tr></tbody>
+      <tbody id="colMainTbody"><tr><td colspan="20" class="col-empty-state">Aucun lot enregistré</td></tr></tbody>
     </table>
   </div>
 
@@ -3428,6 +3542,21 @@ async function resetAllData() {
 
 <!-- NYMPHES -->
 <div id="page-nymphes" class="page">
+<div class="nym-sim-bar">
+  <div class="nym-dot-real" id="nymSimDot"></div>
+  <span class="nym-sim-lbl">🧪 Simulateur</span>
+  <span class="nym-sim-badge" id="nymSimDisplay">—</span>
+  <input type="date" id="nymSimDateInput">
+  <div class="nym-sim-ctrl">
+    <button class="nym-sb" id="nymBM15">−15 j</button>
+    <button class="nym-sb" id="nymBM1">−1 j</button>
+    <button class="nym-sb" id="nymBP1">+1 j</button>
+    <button class="nym-sb" id="nymBP15">+15 j</button>
+    <button class="nym-sb" id="nymBP30">+30 j</button>
+    <button class="nym-sb nym-sb-ok" id="nymBApply">✓ Appliquer</button>
+    <button class="nym-sb nym-sb-rst" id="nymBReset">↺ Aujourd'hui</button>
+  </div>
+</div>
 <h1>Comptabilisation des Nymphes</h1>
 <p class="nym-sous-titre">Suivi des bacs de nymphes — lien avec le tableau des larves</p>
 
