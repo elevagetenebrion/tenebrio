@@ -701,6 +701,48 @@
       font-size: .72rem; font-weight: 700; cursor: pointer;
     }
 
+  
+    /* ══ IMPRESSION ══ */
+    .btn-imprimer {
+      background: #1a3a5c; color: #fff; border: none; border-radius: 8px;
+      padding: 9px 18px; font-size: .85rem; font-weight: 700; cursor: pointer;
+      font-family: 'Lato', sans-serif; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-imprimer:hover { opacity: .88; }
+    .imprimer-bar { max-width: 1200px; margin: 0 auto 14px; padding: 0 10px; display: flex; justify-content: flex-end; }
+
+    @media print {
+      .page { display: none !important; }
+      .page.active { display: block !important; }
+      .user-badge-bar, .sim-date-bar, .lar-sim-bar, .nym-sim-bar,
+      .btn-retour, .page-footer, .imprimer-bar,
+      .form-section, .form-zone, .alert-config,
+      #envBtnEffacer, #colBtnEffacer, .toolbar,
+      .nym-actions-principales, .lar-toolbar,
+      input, select, button:not(.keep-print) {
+        display: none !important;
+      }
+      body { background: #fff !important; padding: 0 !important; }
+      .chart-wrap, .lar-chart-wrap, .nym-chart-wrap { height: 400px !important; max-height: none !important; }
+      table { font-size: 10px !important; }
+      .page-header, .header, h1 { page-break-after: avoid; }
+    }
+
+  
+    .btn-accueil-top {
+      display: block; margin: 0 auto 14px; max-width: 200px;
+      background: #1a1d23; color: #fff; border: none; border-radius: 8px;
+      padding: 9px 22px; font-size: .85rem; font-weight: 700; cursor: pointer;
+      font-family: 'Lato', sans-serif; text-align: center;
+    }
+    .btn-accueil-top:hover { opacity: .85; }
+    .btn-mise-a-zero {
+      background: #7c2d12; color: #fff; border: none; border-radius: 8px;
+      padding: 9px 18px; font-size: .85rem; font-weight: 700; cursor: pointer;
+      font-family: 'Lato', sans-serif;
+    }
+    .btn-mise-a-zero:hover { opacity: .88; }
+
   </style>
 </head>
 <body>
@@ -729,7 +771,6 @@
 <div class="user-badge-bar">
   <span id="userEmailBadge">—</span>
   <div style="display:flex;gap:8px;">
-    <button onclick="resetAllData()" style="background:#b07d1a;">🗑 Tout réinitialiser</button>
     <button onclick="window._fbSignOut()">Déconnexion</button>
   </div>
 </div>
@@ -802,6 +843,7 @@
 
 <!-- ENVIRONNEMENT -->
 <div id="page-env" class="page">
+  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <!-- ── HEADER ── -->
 <div class="header">
   <h1><strong>Environnement de la pièce</strong></h1>
@@ -809,6 +851,11 @@
     <span id="dateDisplay">—</span>
     <span id="timeDisplay">—</span>
   </div>
+</div>
+
+<div class="imprimer-bar" style="max-width:600px;">
+  <button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>
+  <button id="envBtnEffacer" class="btn-mise-a-zero" style="margin-left:10px;">🔄 Mise à zéro</button>
 </div>
 
 <!-- ── MÉTÉO ── -->
@@ -914,14 +961,20 @@
 
 <div class="chart-section">
   <div class="chart-title"><strong>Moyenne JOURNALIÈRE</strong></div>
-  <div class="chart-wrap"><canvas id="chartDay"></canvas></div>
+  <div style="display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:10px;font-size:.78rem;color:var(--sub);">
+    <span><span style="display:inline-block;width:14px;height:3px;background:#e53e3e;border-radius:2px;vertical-align:middle;"></span> Température intérieure</span>
+    <span><span style="display:inline-block;width:14px;height:3px;background:repeating-linear-gradient(90deg,#dd6b20 0 4px,transparent 4px 7px);border-radius:2px;vertical-align:middle;"></span> Température extérieure (météo)</span>
+    <span><span style="display:inline-block;width:14px;height:3px;background:#3182ce;border-radius:2px;vertical-align:middle;"></span> Hygrométrie intérieure</span>
+    <span><span style="display:inline-block;width:14px;height:3px;background:repeating-linear-gradient(90deg,#38a169 0 4px,transparent 4px 7px);border-radius:2px;vertical-align:middle;"></span> Hygrométrie extérieure (météo)</span>
+  </div>
+  <div class="chart-wrap" style="cursor:zoom-in;" onclick="ouvrirZoomGraph('envChartDay')"><canvas id="chartDay"></canvas></div>
 </div>
 
 <hr>
 
 <div class="chart-section">
   <div class="chart-title" id="monthChartTitle">Moyenne MENSUELLE — <span id="yearLabel"></span></div>
-  <div class="chart-wrap"><canvas id="chartMonth"></canvas></div>
+  <div class="chart-wrap" style="cursor:zoom-in;" onclick="ouvrirZoomGraph('envChartMonth')"><canvas id="chartMonth"></canvas></div>
 </div>
 
 <!-- POPUP GRAPHIQUES AVEC SÉLECTEUR DE PÉRIODE -->
@@ -971,7 +1024,12 @@
 
 <!-- SON DE BLÉ -->
 <div id="page-son" class="page">
+  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <h1>🌾 Stock de Son de Blé</h1>
+  <div class="imprimer-bar" style="max-width:980px;">
+    <button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>
+    <button class="btn-mise-a-zero" style="margin-left:10px;" onclick="sonMiseAZero()">🔄 Mise à zéro</button>
+  </div>
   <div id="alertBox">⚠ STOCK BAS — Cumul ≤ 20 kg !</div>
   <div class="form-section">
     <h2>➕ Nouvelle ligne</h2>
@@ -1104,8 +1162,8 @@ function showPage(id) {
 const ENV_KEY = 'env_elevage_v2';
 let envState = { temp: '', hygro: '', tempTime: null, hygroTime: null };
 let envDb = {};
-let envChartDay = null;
-let envChartMonth = null;
+window.envChartDay = null;
+window.envChartMonth = null;
 let envClockTimer = null;
 
 function envLoadDB() {
@@ -1246,13 +1304,13 @@ function envRenderChartDay() {
   const avgT = envMean(temps);
   const avgH = envMean(hygros);
   const datasets = [
-    { label:'Température intérieure (°C)', data:temps, borderColor:'#dd6b20', backgroundColor:'rgba(221,107,32,0.1)', tension:.35, pointRadius:5, fill:false, yAxisID:'yT' },
-    { label:'Hygrométrie intérieure (%)',  data:hygros, borderColor:'#38a169', backgroundColor:'rgba(56,161,105,0.1)', tension:.35, pointRadius:5, fill:false, yAxisID:'yH' },
+    { label:'Température intérieure (°C)', data:temps, borderColor:'#e53e3e', backgroundColor:'rgba(229,62,62,0.1)', tension:.35, pointRadius:5, fill:false, yAxisID:'yT' },
+    { label:'Hygrométrie intérieure (%)',  data:hygros, borderColor:'#3182ce', backgroundColor:'rgba(49,130,206,0.1)', tension:.35, pointRadius:5, fill:false, yAxisID:'yH' },
     { label:'Température extérieure (°C)', data:meteoTemps, borderColor:'#dd6b20', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yT', spanGaps:true },
     { label:'Hygrométrie extérieure (%)',  data:meteoHygros, borderColor:'#38a169', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yH', spanGaps:true },
   ];
-  if (avgT!==null) datasets.push({ label:`Moy. ${avgT.toFixed(1)}°C`, data:Array(labels.length).fill(avgT), borderColor:'#dd6b20', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yT' });
-  if (avgH!==null) datasets.push({ label:`Moy. ${avgH.toFixed(1)}%`,  data:Array(labels.length).fill(avgH), borderColor:'#38a169', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yH' });
+  if (avgT!==null) datasets.push({ label:`Moy. ${avgT.toFixed(1)}°C`, data:Array(labels.length).fill(avgT), borderColor:'#e53e3e', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yT' });
+  if (avgH!==null) datasets.push({ label:`Moy. ${avgH.toFixed(1)}%`,  data:Array(labels.length).fill(avgH), borderColor:'#3182ce', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yH' });
   if (envChartDay) envChartDay.destroy();
   envChartDay = new Chart(ctx, { type:'line', data:{labels,datasets}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{ yT:{type:'linear',position:'left',min:15,max:40,title:{display:true,text:'°C'}}, yH:{type:'linear',position:'right',min:30,max:90,title:{display:true,text:'%'},grid:{drawOnChartArea:false}}, x:{} } } });
 }
@@ -1271,13 +1329,13 @@ function envRenderChartMonth() {
   const gAvgT = envMean(avgTemps.filter(v=>v!==null));
   const gAvgH = envMean(avgHygros.filter(v=>v!==null));
   const datasets = [
-    { label:'Moy. temp. intérieure (°C)',  data:avgTemps,  borderColor:'#dd6b20', tension:.35, pointRadius:5, fill:false, yAxisID:'yT' },
-    { label:'Moy. hygro. intérieure (%)', data:avgHygros, borderColor:'#38a169', tension:.35, pointRadius:5, fill:false, yAxisID:'yH' },
+    { label:'Moy. temp. intérieure (°C)',  data:avgTemps,  borderColor:'#e53e3e', tension:.35, pointRadius:5, fill:false, yAxisID:'yT' },
+    { label:'Moy. hygro. intérieure (%)', data:avgHygros, borderColor:'#3182ce', tension:.35, pointRadius:5, fill:false, yAxisID:'yH' },
     { label:'Moy. temp. extérieure (°C)',  data:avgMeteoTemps,  borderColor:'#dd6b20', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yT', spanGaps:true },
     { label:'Moy. hygro. extérieure (%)', data:avgMeteoHygros, borderColor:'#38a169', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yH', spanGaps:true },
   ];
-  if (gAvgT!==null) datasets.push({ label:`Moy. mens. ${gAvgT.toFixed(1)}°C`, data:Array(labels.length).fill(gAvgT), borderColor:'#dd6b20', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yT' });
-  if (gAvgH!==null) datasets.push({ label:`Moy. mens. ${gAvgH.toFixed(1)}%`,  data:Array(labels.length).fill(gAvgH), borderColor:'#38a169', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yH' });
+  if (gAvgT!==null) datasets.push({ label:`Moy. mens. ${gAvgT.toFixed(1)}°C`, data:Array(labels.length).fill(gAvgT), borderColor:'#e53e3e', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yT' });
+  if (gAvgH!==null) datasets.push({ label:`Moy. mens. ${gAvgH.toFixed(1)}%`,  data:Array(labels.length).fill(gAvgH), borderColor:'#3182ce', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yH' });
   if (envChartMonth) envChartMonth.destroy();
   envChartMonth = new Chart(ctx, { type:'line', data:{labels:labels.length?labels:['—'],datasets}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{ yT:{type:'linear',position:'left',min:15,max:40,title:{display:true,text:'°C'}}, yH:{type:'linear',position:'right',min:30,max:90,title:{display:true,text:'%'},grid:{drawOnChartArea:false}}, x:{title:{display:true,text:'Jour du mois'}} } } });
 }
@@ -1300,6 +1358,8 @@ async function fetchMeteo() {
     const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=44.644&longitude=-0.097&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,precipitation&wind_speed_unit=kmh&timezone=Europe%2FParis');
     const data = await res.json();
     const c = data.current;
+    envDerniereMeteo.temp = c.temperature_2m;
+    envDerniereMeteo.humid = c.relative_humidity_2m;
     const wmo = WMO_CODES[c.weather_code]||['—','❓'];
     document.getElementById('meteoIcon').textContent = wmo[1];
     document.getElementById('meteoDesc').textContent = wmo[0];
@@ -1319,6 +1379,16 @@ function showToast(msg) {
   setTimeout(()=>t.classList.remove('show'),2500);
 }
 
+function envViderToutesLesDonnees(){
+  if(!confirm('⚠️ Ceci va supprimer TOUTES les données Environnement (température, hygrométrie, historique) — local + cloud partagé. Action irréversible. Continuer ?')) return;
+  if(!confirm('Confirmation finale : effacer toutes les données Environnement ?')) return;
+  envDb = {};
+  envSaveDB();
+  envRenderAll();
+  const t=document.getElementById('toast');
+  if(t){ t.textContent='Données Environnement effacées.'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2500); }
+}
+
 function initEnvPage() {
   envDb = envLoadDB();
   const yl = document.getElementById('yearLabel');
@@ -1329,6 +1399,11 @@ function initEnvPage() {
   envTickClock();
   envRenderAll();
   fetchMeteo();
+  if(!window._envEffacerAttache){
+    window._envEffacerAttache = true;
+    const btn=document.getElementById('envBtnEffacer');
+    if(btn) btn.addEventListener('click', envViderToutesLesDonnees);
+  }
 }
 
 
@@ -1957,6 +2032,8 @@ function initColPage(){
     window._colEffacerAttache = true;
     const btn=document.getElementById('colBtnEffacer');
     if(btn) btn.addEventListener('click', colOuvrirModalEffacer);
+    const btnZero=document.getElementById('colBtnMiseAZero');
+    if(btnZero) btnZero.addEventListener('click', colViderToutLeTableau);
     const selLot=document.getElementById('colEffLot');
     if(selLot) selLot.addEventListener('change', colMettreAJourOptionsEffacer);
     const selCycle=document.getElementById('colEffCycle');
@@ -2204,7 +2281,17 @@ function ponteConfirmFusion(){
 }
 
 function ponteOuvrirReset(){ document.getElementById('ponteModalReset').classList.add('open'); }
-function ponteConfirmReset(){ localStorage.removeItem(PONTE_KEY); ponteFermerModal('ponteModalReset'); ponteRender(); }
+function ponteConfirmReset(){
+  localStorage.removeItem(PONTE_KEY);
+  fbSafeSave(PONTE_KEY, []);
+  ponteFermerModal('ponteModalReset');
+  ponteRender();
+}
+function ponteMiseAZero(){
+  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du Tableau de Ponte. Action irréversible. Continuer ?')) return;
+  if(!confirm('Confirmation finale : vider le Tableau de Ponte ?')) return;
+  ponteConfirmReset();
+}
 function ponteFermerModal(id){ document.getElementById(id).classList.remove('open'); pontePendingSortieUid=null; }
 
 function initOeufsPage(){
@@ -2995,6 +3082,15 @@ function nymAttacherEvenements(){
   });
 }
 
+function nymMiseAZero(){
+  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Nymphes ET les grilles créées. Action irréversible. Continuer ?')) return;
+  if(!confirm('Confirmation finale : vider le tableau Nymphes ?')) return;
+  NYM_DB = { lots: [], grillesCreees: [] };
+  nymSauverDB(NYM_DB);
+  nymRenderTableau();
+  nymRenderGrillesCreees();
+}
+
 function initNymphesPage(){
   NYM_DB = nymChargerDB();
   nymAttacherEvenements();
@@ -3220,7 +3316,7 @@ function larRender(){
   larUpdateChart(moys);
 }
 
-let larChart=null;
+window.larChart=null;
 function larUpdateChart(moys){
   const canvas=document.getElementById('larChart'); if(!canvas) return;
   const ctx=canvas.getContext('2d');
@@ -3402,6 +3498,14 @@ function larTransfererVersNymphes(rowIdx){
   larShowToast('Bac n°'+nouveauBac+' créé dans Nymphes ('+poids.toLocaleString('fr-FR')+' g).');
 }
 
+function larMiseAZero(){
+  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Larves. Action irréversible. Continuer ?')) return;
+  if(!confirm('Confirmation finale : vider le tableau Larves ?')) return;
+  larData = [];
+  larSave();
+  larRender();
+}
+
 function initLarvesPage(){
   larLoad();
   larAttacherEvenements();
@@ -3505,6 +3609,16 @@ function colMettreAJourValeurEffacer(){
       }
     }
   }
+}
+
+function colViderToutLeTableau(){
+  if(!confirm('⚠️ Ceci va supprimer TOUTES les lignes du tableau Coléoptères (local + cloud partagé). Action irréversible. Continuer ?')) return;
+  if(!confirm('Confirmation finale : vider complètement le tableau Coléoptères ?')) return;
+  colLots = [];
+  colSauver();
+  colPeuplerGrille(); colPeuplerBacs(); colRafraichir();
+  const t=document.getElementById('toast');
+  if(t){ t.textContent='Tableau Coléoptères vidé.'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2500); }
 }
 
 function colConfirmerEffacer(){
@@ -3667,11 +3781,61 @@ function envAfficherListeAbsences(){
   }).join('');
 }
 
+
+/* ══ ZOOM GÉNÉRIQUE SUR GRAPHIQUE ══ */
+let zoomChartInstance = null;
+function ouvrirZoomGraph(sourceChartVar){
+  const src = window[sourceChartVar];
+  if(!src){ return; }
+  document.getElementById('zoomGraphOverlay').style.display='flex';
+  const ctx = document.getElementById('zoomGraphCanvas').getContext('2d');
+  if(zoomChartInstance) zoomChartInstance.destroy();
+  const config = {
+    type: src.config.type,
+    data: JSON.parse(JSON.stringify(src.config.data)),
+    options: Object.assign({}, src.config.options, { responsive:true, maintainAspectRatio:false })
+  };
+  zoomChartInstance = new Chart(ctx, config);
+}
+function fermerZoomGraph(){
+  document.getElementById('zoomGraphOverlay').style.display='none';
+  if(zoomChartInstance){ zoomChartInstance.destroy(); zoomChartInstance=null; }
+}
+
+
+/* ══ MISE À ZÉRO — MODULES DE STOCK ══ */
+function sonMiseAZero(){
+  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Son de blé. Action irréversible. Continuer ?')) return;
+  if(!confirm('Confirmation finale : vider le tableau Son de blé ?')) return;
+  sonSave([]);
+  sonRender();
+}
+function legMiseAZero(){
+  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Légumes. Action irréversible. Continuer ?')) return;
+  if(!confirm('Confirmation finale : vider le tableau Légumes ?')) return;
+  legSave([]);
+  legRender();
+}
+function levMiseAZero(){
+  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Levure. Action irréversible. Continuer ?')) return;
+  if(!confirm('Confirmation finale : vider le tableau Levure ?')) return;
+  levSave([]);
+  levRender();
+}
+function poidsMiseAZero(){
+  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Poids cassé. Action irréversible. Continuer ?')) return;
+  if(!confirm('Confirmation finale : vider le tableau Poids cassé ?')) return;
+  poidsSave([]);
+  poidsRender();
+}
+
 </script>
 
 <!-- LÉGUMES -->
 <div id="page-leg" class="page">
+  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">🥦 Stock Légumes</h1>
+  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="legMiseAZero()">🔄 Mise à zéro</button></div>
   <div id="leg-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ <span id="leg-alertSeuil"></span> kg !</div>
   <div style="max-width:980px;margin:0 auto 18px auto;display:flex;align-items:center;gap:10px;font-size:.82rem;color:#555;">
     <label style="font-weight:700;text-transform:uppercase;">Seuil d'alerte (kg) :</label>
@@ -3705,7 +3869,9 @@ function envAfficherListeAbsences(){
 
 <!-- LEVURE -->
 <div id="page-lev" class="page">
+  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">🫙 Stock Levure</h1>
+  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="levMiseAZero()">🔄 Mise à zéro</button></div>
   <div id="lev-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ 5 kg ! Veuillez commander de la levure.</div>
   <div class="form-section" style="border-top:3px solid #d4a855;">
     <h2 style="color:#5a3a00;">➕ Nouvelle ligne</h2>
@@ -3734,7 +3900,9 @@ function envAfficherListeAbsences(){
 
 <!-- POIDS CASSÉ -->
 <div id="page-poids" class="page">
+  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">⚖️ Stock Poids Cassé</h1>
+  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="poidsMiseAZero()">🔄 Mise à zéro</button></div>
   <div id="poids-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ 5 kg ! Veuillez commander du poids cassé.</div>
   <div class="form-section" style="border-top:3px solid #1a5a54;">
     <h2 style="color:#1a5a54;">➕ Nouvelle ligne</h2>
@@ -3763,6 +3931,7 @@ function envAfficherListeAbsences(){
 
 <!-- COLÉOPTÈRES -->
 <div id="page-col" class="page">
+  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <div class="sim-date-bar" id="simBarCol">
   <label>🧪 Date simulée :</label>
   <input type="date" id="simDateCol" onchange="simChangerDateCol()"/>
@@ -3788,8 +3957,10 @@ function envAfficherListeAbsences(){
     </div>
   </div>
 
-  <div style="max-width:1200px;margin:0 auto;padding:0 10px;display:flex;justify-content:flex-end;">
-    <button id="colBtnEffacer" style="background:#b91c1c;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:'Lato',sans-serif;">🗑 Effacer / Remplacer</button>
+  <div class="imprimer-bar">
+    <button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>
+    <button id="colBtnEffacer" style="background:#b91c1c;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:'Lato',sans-serif;margin-left:10px;">🗑 Effacer / Remplacer</button>
+    <button id="colBtnMiseAZero" class="btn-mise-a-zero" style="margin-left:10px;">🔄 Mise à zéro</button>
   </div>
 
   <div class="table-zone">
@@ -3903,6 +4074,7 @@ function envAfficherListeAbsences(){
 
 <!-- ŒUFS / TABLEAU DE PONTE -->
 <div id="page-oeufs" class="page">
+  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <div class="sim-date-bar" id="simBarOeufs">
   <label>🧪 Date simulée :</label>
   <input type="date" id="simDateOeufs" onchange="simChangerDateOeufs()"/>
@@ -3911,6 +4083,7 @@ function envAfficherListeAbsences(){
 </div>
   <h1>Tableau de Ponte</h1>
   <p class="ponte-subtitle">Suivi des bacs d'œufs — Tenebrio molitor</p>
+  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="ponteMiseAZero()">🔄 Mise à zéro</button></div>
 
   <div class="ponte-bandeau">
     <h3>✎ Saisie manuelle</h3>
@@ -3990,6 +4163,7 @@ function envAfficherListeAbsences(){
 
 <!-- NYMPHES -->
 <div id="page-nymphes" class="page">
+<button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
 <div class="nym-sim-bar">
   <div class="nym-dot-real" id="nymSimDot"></div>
   <span class="nym-sim-lbl">🧪 Simulateur</span>
@@ -4007,6 +4181,7 @@ function envAfficherListeAbsences(){
 </div>
 <h1>Comptabilisation des Nymphes</h1>
 <p class="nym-sous-titre">Suivi des bacs de nymphes — lien avec le tableau des larves</p>
+<div class="imprimer-bar" style="max-width:560px;"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="nymMiseAZero()">🔄 Mise à zéro</button></div>
 
 <div class="nym-compteur-box">
   <div>
@@ -4183,10 +4358,13 @@ function envAfficherListeAbsences(){
 
 <!-- LARVES -->
 <div id="page-larves" class="page">
+<button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
 <div class="lar-header">
   <h1>LARVES</h1>
   <div class="lar-sub">Suivi du développement larvaire — Tenebrio molitor</div>
 </div>
+
+<div class="imprimer-bar"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="larMiseAZero()">🔄 Mise à zéro</button></div>
 
 <div class="lar-sim-bar">
   <div class="lar-dot-real" id="larSimDot"></div>
@@ -4250,8 +4428,8 @@ function envAfficherListeAbsences(){
 </div>
 
 <div class="lar-chart-section">
-  <div class="lar-chart-title">Évolution du poids moyen par stade larvaire</div>
-  <div class="lar-chart-wrap"><canvas id="larChart"></canvas></div>
+  <div class="lar-chart-title">Évolution du poids moyen par stade larvaire <span style="font-size:.7rem;color:#7a6a55;cursor:pointer;" onclick="ouvrirZoomGraph('larChart')">🔍 Agrandir</span></div>
+  <div class="lar-chart-wrap" style="cursor:zoom-in;" onclick="ouvrirZoomGraph('larChart')"><canvas id="larChart"></canvas></div>
 </div>
 
 <div class="page-footer">
@@ -4306,5 +4484,18 @@ function envAfficherListeAbsences(){
 </div>
 
 </div><!-- /appContent -->
+
+<!-- MODALE ZOOM GRAPHIQUE GÉNÉRIQUE -->
+<div id="zoomGraphOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99500;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)fermerZoomGraph()">
+  <div style="background:#fff;border-radius:14px;padding:20px;max-width:95vw;width:900px;max-height:90vh;">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+      <button onclick="fermerZoomGraph()" style="background:#e2e6ea;color:#1a1d23;border:none;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;">✕ Fermer</button>
+    </div>
+    <div style="position:relative;height:65vh;">
+      <canvas id="zoomGraphCanvas"></canvas>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
