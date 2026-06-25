@@ -900,11 +900,16 @@
 <div class="section-title">📊 Mesures du jour</div>
 <div class="log-table-wrap">
   <table id="logTable">
-    <thead><tr><th>Heure</th><th>Température (°C)</th><th>Hygrométrie (%)</th></tr></thead>
+    <thead><tr><th>Heure</th><th>Température (°C)</th><th>Hygrométrie (%)</th><th style="color:var(--orange);">🌡 Météo extérieure</th><th style="color:var(--blue);">💧 Météo extérieure</th></tr></thead>
     <tbody id="logBody">
-      <tr><td colspan="3" style="color:var(--sub);text-align:center;padding:16px">Aucune mesure enregistrée aujourd'hui.</td></tr>
+      <tr><td colspan="5" style="color:var(--sub);text-align:center;padding:16px">Aucune mesure enregistrée aujourd'hui.</td></tr>
     </tbody>
   </table>
+</div>
+
+<div style="max-width:560px;margin:0 auto 20px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+  <button onclick="envOuvrirGraphPopup()" style="background:#dd6b20;color:#fff;border:none;border-radius:8px;padding:11px 20px;font-weight:700;font-size:.85rem;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;">📊 Voir les graphiques</button>
+  <button onclick="envOuvrirCalendrierAbsences()" style="background:#6b7280;color:#fff;border:none;border-radius:8px;padding:11px 20px;font-weight:700;font-size:.85rem;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;">📅 Jours d'absence</button>
 </div>
 
 <div class="chart-section">
@@ -917,6 +922,45 @@
 <div class="chart-section">
   <div class="chart-title" id="monthChartTitle">Moyenne MENSUELLE — <span id="yearLabel"></span></div>
   <div class="chart-wrap"><canvas id="chartMonth"></canvas></div>
+</div>
+
+<!-- POPUP GRAPHIQUES AVEC SÉLECTEUR DE PÉRIODE -->
+<div id="envGraphOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9400;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:14px;padding:20px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;">
+    <h3 style="font-family:'IBM Plex Sans',sans-serif;margin-bottom:14px;text-align:center;">📊 Graphiques météo & mesures</h3>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="env-period-btn" data-period="jour" onclick="envChangerPeriodeGraph('jour')" style="padding:8px 16px;border:1.5px solid #dd6b20;border-radius:7px;background:#dd6b20;color:#fff;font-weight:700;cursor:pointer;">Journalier</button>
+      <button class="env-period-btn" data-period="semaine" onclick="envChangerPeriodeGraph('semaine')" style="padding:8px 16px;border:1.5px solid #dd6b20;border-radius:7px;background:#fff;color:#dd6b20;font-weight:700;cursor:pointer;">Hebdomadaire</button>
+      <button class="env-period-btn" data-period="mois" onclick="envChangerPeriodeGraph('mois')" style="padding:8px 16px;border:1.5px solid #dd6b20;border-radius:7px;background:#fff;color:#dd6b20;font-weight:700;cursor:pointer;">Mensuel</button>
+    </div>
+    <div style="position:relative;height:340px;">
+      <canvas id="envChartPopup"></canvas>
+    </div>
+    <div style="text-align:center;margin-top:16px;">
+      <button onclick="envFermerGraphPopup()" style="background:#e2e6ea;color:#1a1d23;border:none;border-radius:8px;padding:9px 22px;font-weight:700;cursor:pointer;">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP CALENDRIER D'ABSENCES -->
+<div id="envAbsenceOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9400;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:14px;padding:20px;width:100%;max-width:380px;">
+    <h3 style="font-family:'IBM Plex Sans',sans-serif;margin-bottom:14px;text-align:center;">📅 Marquer des jours d'absence</h3>
+    <p style="font-size:.82rem;color:#6b7280;margin-bottom:14px;text-align:center;">Ces jours seront exclus des anomalies dans les graphiques.</p>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:.78rem;font-weight:700;color:#6b7280;display:block;margin-bottom:5px;">Du</label>
+      <input type="date" id="envAbsenceDateDebut" style="width:100%;padding:9px;border:1.5px solid #e2e6ea;border-radius:7px;">
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:.78rem;font-weight:700;color:#6b7280;display:block;margin-bottom:5px;">Au</label>
+      <input type="date" id="envAbsenceDateFin" style="width:100%;padding:9px;border:1.5px solid #e2e6ea;border-radius:7px;">
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <button onclick="envFermerCalendrierAbsences()" style="flex:1;background:#e2e6ea;color:#1a1d23;border:none;border-radius:8px;padding:10px;font-weight:700;cursor:pointer;">Annuler</button>
+      <button onclick="envValiderAbsence()" style="flex:1;background:#dd6b20;color:#fff;border:none;border-radius:8px;padding:10px;font-weight:700;cursor:pointer;">Valider</button>
+    </div>
+    <div id="envListeAbsences" style="font-size:.8rem;color:#6b7280;"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1136,7 +1180,12 @@ function enregistrer() {
   const hygro = parseFloat(envState.hygro);
   if (isNaN(temp)||isNaN(hygro)) { showToast('Veuillez saisir température et hygrométrie.'); return; }
   const now = new Date();
-  const entry = { time: now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}), temp, hygro, ts: now.toISOString() };
+  const entry = {
+    time: now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    temp, hygro, ts: now.toISOString(),
+    meteoTemp: envDerniereMeteo.temp,
+    meteoHumid: envDerniereMeteo.humid
+  };
   const dk = envTodayKey();
   if (!envDb[dk]) envDb[dk] = [];
   envDb[dk].push(entry);
@@ -1175,8 +1224,12 @@ function envRenderTable() {
   const tbody = document.getElementById('logBody');
   if (!tbody) return;
   const entries = envDb[envTodayKey()]||[];
-  if (!entries.length) { tbody.innerHTML='<tr><td colspan="3" style="color:var(--sub);text-align:center;padding:16px">Aucune mesure enregistrée aujourd\'hui.</td></tr>'; return; }
-  tbody.innerHTML = entries.map(e=>`<tr><td>${e.time}</td><td class="temp-val">${e.temp.toFixed(1)}</td><td class="hygro-val">${e.hygro.toFixed(1)}</td></tr>`).join('');
+  if (!entries.length) { tbody.innerHTML='<tr><td colspan="5" style="color:var(--sub);text-align:center;padding:16px">Aucune mesure enregistrée aujourd\'hui.</td></tr>'; return; }
+  tbody.innerHTML = entries.map(e=>{
+    const mTemp = (e.meteoTemp!==null&&e.meteoTemp!==undefined) ? e.meteoTemp.toFixed(1)+'°C' : '—';
+    const mHumid = (e.meteoHumid!==null&&e.meteoHumid!==undefined) ? e.meteoHumid.toFixed(0)+'%' : '—';
+    return `<tr><td>${e.time}</td><td class="temp-val">${e.temp.toFixed(1)}</td><td class="hygro-val">${e.hygro.toFixed(1)}</td><td style="color:var(--orange);">${mTemp}</td><td style="color:var(--blue);">${mHumid}</td></tr>`;
+  }).join('');
 }
 
 function envRenderChartDay() {
@@ -1188,14 +1241,18 @@ function envRenderChartDay() {
   const labels = entries.map(e=>e.time);
   const temps  = entries.map(e=>e.temp);
   const hygros = entries.map(e=>e.hygro);
+  const meteoTemps  = entries.map(e=>(e.meteoTemp!==undefined&&e.meteoTemp!==null)?e.meteoTemp:null);
+  const meteoHygros = entries.map(e=>(e.meteoHumid!==undefined&&e.meteoHumid!==null)?e.meteoHumid:null);
   const avgT = envMean(temps);
   const avgH = envMean(hygros);
   const datasets = [
-    { label:'Température (°C)', data:temps, borderColor:'#e53e3e', backgroundColor:'rgba(229,62,62,0.1)', tension:.35, pointRadius:5, fill:false, yAxisID:'yT' },
-    { label:'Hygrométrie (%)',  data:hygros, borderColor:'#3182ce', backgroundColor:'rgba(49,130,206,0.1)', tension:.35, pointRadius:5, fill:false, yAxisID:'yH' },
+    { label:'Température intérieure (°C)', data:temps, borderColor:'#dd6b20', backgroundColor:'rgba(221,107,32,0.1)', tension:.35, pointRadius:5, fill:false, yAxisID:'yT' },
+    { label:'Hygrométrie intérieure (%)',  data:hygros, borderColor:'#38a169', backgroundColor:'rgba(56,161,105,0.1)', tension:.35, pointRadius:5, fill:false, yAxisID:'yH' },
+    { label:'Température extérieure (°C)', data:meteoTemps, borderColor:'#dd6b20', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yT', spanGaps:true },
+    { label:'Hygrométrie extérieure (%)',  data:meteoHygros, borderColor:'#38a169', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yH', spanGaps:true },
   ];
-  if (avgT!==null) datasets.push({ label:`Moy. ${avgT.toFixed(1)}°C`, data:Array(labels.length).fill(avgT), borderColor:'#e53e3e', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yT' });
-  if (avgH!==null) datasets.push({ label:`Moy. ${avgH.toFixed(1)}%`,  data:Array(labels.length).fill(avgH), borderColor:'#3182ce', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yH' });
+  if (avgT!==null) datasets.push({ label:`Moy. ${avgT.toFixed(1)}°C`, data:Array(labels.length).fill(avgT), borderColor:'#dd6b20', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yT' });
+  if (avgH!==null) datasets.push({ label:`Moy. ${avgH.toFixed(1)}%`,  data:Array(labels.length).fill(avgH), borderColor:'#38a169', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yH' });
   if (envChartDay) envChartDay.destroy();
   envChartDay = new Chart(ctx, { type:'line', data:{labels,datasets}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{ yT:{type:'linear',position:'left',min:15,max:40,title:{display:true,text:'°C'}}, yH:{type:'linear',position:'right',min:30,max:90,title:{display:true,text:'%'},grid:{drawOnChartArea:false}}, x:{} } } });
 }
@@ -1209,14 +1266,18 @@ function envRenderChartMonth() {
   const labels = days.map(d=>d.slice(8));
   const avgTemps  = days.map(d=>{ const e=envDb[d]; return e&&e.length?envMean(e.map(x=>x.temp)):null; });
   const avgHygros = days.map(d=>{ const e=envDb[d]; return e&&e.length?envMean(e.map(x=>x.hygro)):null; });
+  const avgMeteoTemps  = days.map(d=>{ const e=envDb[d]; const vals=(e||[]).map(x=>x.meteoTemp).filter(v=>v!==null&&v!==undefined); return vals.length?envMean(vals):null; });
+  const avgMeteoHygros = days.map(d=>{ const e=envDb[d]; const vals=(e||[]).map(x=>x.meteoHumid).filter(v=>v!==null&&v!==undefined); return vals.length?envMean(vals):null; });
   const gAvgT = envMean(avgTemps.filter(v=>v!==null));
   const gAvgH = envMean(avgHygros.filter(v=>v!==null));
   const datasets = [
-    { label:'Moy. temp. (°C)',  data:avgTemps,  borderColor:'#e53e3e', tension:.35, pointRadius:5, fill:false, yAxisID:'yT' },
-    { label:'Moy. hygro. (%)', data:avgHygros, borderColor:'#3182ce', tension:.35, pointRadius:5, fill:false, yAxisID:'yH' },
+    { label:'Moy. temp. intérieure (°C)',  data:avgTemps,  borderColor:'#dd6b20', tension:.35, pointRadius:5, fill:false, yAxisID:'yT' },
+    { label:'Moy. hygro. intérieure (%)', data:avgHygros, borderColor:'#38a169', tension:.35, pointRadius:5, fill:false, yAxisID:'yH' },
+    { label:'Moy. temp. extérieure (°C)',  data:avgMeteoTemps,  borderColor:'#dd6b20', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yT', spanGaps:true },
+    { label:'Moy. hygro. extérieure (%)', data:avgMeteoHygros, borderColor:'#38a169', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yH', spanGaps:true },
   ];
-  if (gAvgT!==null) datasets.push({ label:`Moy. mens. ${gAvgT.toFixed(1)}°C`, data:Array(labels.length).fill(gAvgT), borderColor:'#e53e3e', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yT' });
-  if (gAvgH!==null) datasets.push({ label:`Moy. mens. ${gAvgH.toFixed(1)}%`,  data:Array(labels.length).fill(gAvgH), borderColor:'#3182ce', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yH' });
+  if (gAvgT!==null) datasets.push({ label:`Moy. mens. ${gAvgT.toFixed(1)}°C`, data:Array(labels.length).fill(gAvgT), borderColor:'#dd6b20', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yT' });
+  if (gAvgH!==null) datasets.push({ label:`Moy. mens. ${gAvgH.toFixed(1)}%`,  data:Array(labels.length).fill(gAvgH), borderColor:'#38a169', borderDash:[6,4], borderWidth:2, pointRadius:0, fill:false, yAxisID:'yH' });
   if (envChartMonth) envChartMonth.destroy();
   envChartMonth = new Chart(ctx, { type:'line', data:{labels:labels.length?labels:['—'],datasets}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{ yT:{type:'linear',position:'left',min:15,max:40,title:{display:true,text:'°C'}}, yH:{type:'linear',position:'right',min:30,max:90,title:{display:true,text:'%'},grid:{drawOnChartArea:false}}, x:{title:{display:true,text:'Jour du mois'}} } } });
 }
@@ -1228,6 +1289,8 @@ function envRenderAll() {
 }
 
 const WMO_CODES = {0:['Ciel dégagé','☀️'],1:['Principalement dégagé','🌤'],2:['Partiellement nuageux','⛅'],3:['Couvert','☁️'],45:['Brouillard','🌫'],51:['Bruine légère','🌦'],61:['Pluie légère','🌧'],63:['Pluie modérée','🌧'],65:['Pluie forte','🌧'],80:['Averses','🌦'],95:['Orage','⛈']};
+let envDerniereMeteo = { temp: null, humid: null };
+
 async function fetchMeteo() {
   const loading = document.getElementById('meteoLoading');
   const content = document.getElementById('meteoContent');
@@ -1244,6 +1307,7 @@ async function fetchMeteo() {
     document.getElementById('meteoHumid').textContent = `💧 ${c.relative_humidity_2m}%`;
     document.getElementById('meteoWind').textContent  = `💨 ${c.wind_speed_10m} km/h`;
     document.getElementById('meteoRain').textContent  = `🌧 ${c.precipitation} mm`;
+    envDerniereMeteo = { temp: c.temperature_2m, humid: c.relative_humidity_2m };
     loading.style.display='none'; content.style.display='flex';
   } catch { if(loading) loading.textContent='Météo indisponible.'; }
 }
@@ -1888,6 +1952,20 @@ function initColPage(){
   const d=document.getElementById('colFDateEntree');
   if(d) d.value=colDateStr(new Date());
   colPeuplerGrille(); colPeuplerBacs(); colRafraichir();
+
+  if(!window._colEffacerAttache){
+    window._colEffacerAttache = true;
+    const btn=document.getElementById('colBtnEffacer');
+    if(btn) btn.addEventListener('click', colOuvrirModalEffacer);
+    const selLot=document.getElementById('colEffLot');
+    if(selLot) selLot.addEventListener('change', colMettreAJourOptionsEffacer);
+    const selCycle=document.getElementById('colEffCycle');
+    if(selCycle) selCycle.addEventListener('change', colMettreAJourOptionsEffacer);
+    const selType=document.getElementById('colEffType');
+    if(selType) selType.addEventListener('change', colMettreAJourValeurEffacer);
+    const btnConfirm=document.getElementById('colBtnConfirmEffacer');
+    if(btnConfirm) btnConfirm.addEventListener('click', colConfirmerEffacer);
+  }
 }
 
 
@@ -3363,6 +3441,232 @@ async function resetAllData() {
   window.location.reload();
 }
 
+
+/* ══ MODALE EFFACER / REMPLACER (GLOBAL COLÉOPTÈRES) ══ */
+function colOuvrirModalEffacer(){
+  if(!colLots.length){
+    const t=document.getElementById('toast');
+    if(t){ t.textContent='Aucun lot enregistré.'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2500); }
+    return;
+  }
+  const sel=document.getElementById('colEffLot');
+  sel.innerHTML='';
+  colLots.forEach(function(lot){
+    const opt=document.createElement('option');
+    opt.value=lot.id; opt.textContent='Grille '+lot.grille+' — entrée '+colAffDate(lot.dateEntree);
+    sel.appendChild(opt);
+  });
+  colMettreAJourOptionsEffacer();
+  document.getElementById('colModalEffacer').classList.add('open');
+}
+function colFermerModalEffacer(){
+  document.getElementById('colModalEffacer').classList.remove('open');
+}
+
+function colMettreAJourOptionsEffacer(){
+  const lotId=document.getElementById('colEffLot').value;
+  const cycle=parseInt(document.getElementById('colEffCycle').value,10);
+  const lot=colLots.find(function(l){return l.id==lotId;});
+  const typeWrap=document.getElementById('colEffTypeWrap');
+  const typeSel=document.getElementById('colEffType');
+
+  // Cycle 1 : choix grille OU bac. Cycles 2/3/4 : uniquement bac.
+  if(cycle===1){
+    typeWrap.style.display='block';
+    typeSel.innerHTML='<option value="grille">Effacer / remplacer la grille (lettre)</option><option value="bac">Effacer / remplacer le bac</option>';
+  } else {
+    typeWrap.style.display='none';
+    typeSel.innerHTML='<option value="bac">Effacer / remplacer le bac</option>';
+  }
+  colMettreAJourValeurEffacer();
+}
+
+function colMettreAJourValeurEffacer(){
+  const type=document.getElementById('colEffType').value;
+  const valSel=document.getElementById('colEffValeur');
+  const label=document.getElementById('colEffValeurLabel');
+  valSel.innerHTML='';
+
+  if(type==='grille'){
+    label.textContent='Nouvelle lettre de grille';
+    colLettresDisponibles().forEach(function(l){
+      const opt=document.createElement('option');
+      opt.value=l; opt.textContent=l;
+      valSel.appendChild(opt);
+    });
+  } else {
+    label.textContent='Nouveau numéro de bac';
+    const utilises=colBacsUtilises();
+    for(let i=1;i<=BAC_MAX;i++){
+      if(!utilises.has(i)){
+        const opt=document.createElement('option');
+        opt.value=i; opt.textContent=i;
+        valSel.appendChild(opt);
+      }
+    }
+  }
+}
+
+function colConfirmerEffacer(){
+  const lotId=document.getElementById('colEffLot').value;
+  const cycle=parseInt(document.getElementById('colEffCycle').value,10);
+  const type=document.getElementById('colEffType').value;
+  const valeur=document.getElementById('colEffValeur').value;
+  const lot=colLots.find(function(l){return l.id==lotId;});
+  if(!lot){ colFermerModalEffacer(); return; }
+  if(!valeur){ alert('Veuillez choisir une nouvelle valeur.'); return; }
+
+  if(type==='grille'){
+    lot.grille=valeur;
+  } else {
+    const cyc=lot['c'+cycle];
+    if(!cyc){ alert('Ce cycle n\'existe pas encore pour ce lot.'); colFermerModalEffacer(); return; }
+    cyc.bac=parseInt(valeur,10);
+  }
+
+  colSauver(); colPeuplerGrille(); colPeuplerBacs(); colRafraichir();
+  colFermerModalEffacer();
+  const t=document.getElementById('toast');
+  if(t){ t.textContent='Modification effectuée.'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2500); }
+}
+
+
+/* ══ POPUP GRAPHIQUES (Journalier / Hebdomadaire / Mensuel) ══ */
+let envChartPopupInstance = null;
+let envPeriodeActuelle = 'jour';
+
+function envOuvrirGraphPopup(){
+  document.getElementById('envGraphOverlay').style.display = 'flex';
+  envChangerPeriodeGraph('jour');
+}
+function envFermerGraphPopup(){
+  document.getElementById('envGraphOverlay').style.display = 'none';
+  if (envChartPopupInstance) { envChartPopupInstance.destroy(); envChartPopupInstance = null; }
+}
+
+function envChangerPeriodeGraph(periode){
+  envPeriodeActuelle = periode;
+  document.querySelectorAll('.env-period-btn').forEach(function(b){
+    const actif = b.dataset.period===periode;
+    b.style.background = actif ? '#dd6b20' : '#fff';
+    b.style.color = actif ? '#fff' : '#dd6b20';
+  });
+
+  let labels=[], temps=[], hygros=[], meteoTemps=[], meteoHygros=[];
+
+  if (periode==='jour') {
+    const entries = envDb[envTodayKey()]||[];
+    labels = entries.map(function(e){return e.time;});
+    temps = entries.map(function(e){return e.temp;});
+    hygros = entries.map(function(e){return e.hygro;});
+    meteoTemps = entries.map(function(e){return (e.meteoTemp!==undefined&&e.meteoTemp!==null)?e.meteoTemp:null;});
+    meteoHygros = entries.map(function(e){return (e.meteoHumid!==undefined&&e.meteoHumid!==null)?e.meteoHumid:null;});
+  } else if (periode==='semaine') {
+    const today = new Date();
+    for (let i=6;i>=0;i--){
+      const d = new Date(today); d.setDate(d.getDate()-i);
+      const dk = d.toISOString().slice(0,10);
+      const entries = envDb[dk]||[];
+      labels.push(d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric'}));
+      const t = entries.map(function(e){return e.temp;});
+      const h = entries.map(function(e){return e.hygro;});
+      const mt = entries.map(function(e){return e.meteoTemp;}).filter(function(v){return v!==null&&v!==undefined;});
+      const mh = entries.map(function(e){return e.meteoHumid;}).filter(function(v){return v!==null&&v!==undefined;});
+      temps.push(t.length?envMean(t):null);
+      hygros.push(h.length?envMean(h):null);
+      meteoTemps.push(mt.length?envMean(mt):null);
+      meteoHygros.push(mh.length?envMean(mh):null);
+    }
+  } else if (periode==='mois') {
+    const mk = envMonthKey();
+    const days = Object.keys(envDb).filter(function(k){return k.startsWith(mk);}).sort();
+    labels = days.map(function(d){return d.slice(8);});
+    temps = days.map(function(d){const e=envDb[d];return e&&e.length?envMean(e.map(function(x){return x.temp;})):null;});
+    hygros = days.map(function(d){const e=envDb[d];return e&&e.length?envMean(e.map(function(x){return x.hygro;})):null;});
+    meteoTemps = days.map(function(d){const e=envDb[d]||[];const v=e.map(function(x){return x.meteoTemp;}).filter(function(x){return x!==null&&x!==undefined;});return v.length?envMean(v):null;});
+    meteoHygros = days.map(function(d){const e=envDb[d]||[];const v=e.map(function(x){return x.meteoHumid;}).filter(function(x){return x!==null&&x!==undefined;});return v.length?envMean(v):null;});
+  }
+
+  const datasets = [
+    { label:'Température intérieure (°C)', data:temps, borderColor:'#dd6b20', backgroundColor:'rgba(221,107,32,0.1)', tension:.35, pointRadius:4, fill:false, yAxisID:'yT', spanGaps:true },
+    { label:'Hygrométrie intérieure (%)', data:hygros, borderColor:'#38a169', backgroundColor:'rgba(56,161,105,0.1)', tension:.35, pointRadius:4, fill:false, yAxisID:'yH', spanGaps:true },
+    { label:'Température extérieure (°C)', data:meteoTemps, borderColor:'#dd6b20', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yT', spanGaps:true },
+    { label:'Hygrométrie extérieure (%)', data:meteoHygros, borderColor:'#38a169', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yH', spanGaps:true },
+  ];
+
+  const canvas = document.getElementById('envChartPopup');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (envChartPopupInstance) envChartPopupInstance.destroy();
+  envChartPopupInstance = new Chart(ctx, {
+    type:'line',
+    data:{ labels: labels.length?labels:['—'], datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{font:{size:10}} } },
+      scales:{
+        yT:{ type:'linear', position:'left', min:10, max:40, title:{display:true,text:'°C'} },
+        yH:{ type:'linear', position:'right', min:20, max:100, title:{display:true,text:'%'}, grid:{drawOnChartArea:false} },
+        x:{}
+      }
+    }
+  });
+}
+
+/* ══ CALENDRIER D'ABSENCES ══ */
+const ENV_ABSENCES_KEY = 'env_absences_v1';
+function envChargerAbsences(){
+  try { return JSON.parse(localStorage.getItem(ENV_ABSENCES_KEY)) || []; }
+  catch(e) { return []; }
+}
+function envSauverAbsences(absences){
+  localStorage.setItem(ENV_ABSENCES_KEY, JSON.stringify(absences));
+  fbSafeSave(ENV_ABSENCES_KEY, absences);
+}
+function envEstJourAbsence(dateISO){
+  const absences = envChargerAbsences();
+  return absences.some(function(a){ return dateISO >= a.debut && dateISO <= a.fin; });
+}
+
+function envOuvrirCalendrierAbsences(){
+  document.getElementById('envAbsenceOverlay').style.display = 'flex';
+  const today = envTodayKey();
+  document.getElementById('envAbsenceDateDebut').value = today;
+  document.getElementById('envAbsenceDateFin').value = today;
+  envAfficherListeAbsences();
+}
+function envFermerCalendrierAbsences(){
+  document.getElementById('envAbsenceOverlay').style.display = 'none';
+}
+function envValiderAbsence(){
+  const debut = document.getElementById('envAbsenceDateDebut').value;
+  const fin = document.getElementById('envAbsenceDateFin').value;
+  if (!debut || !fin) { alert('Veuillez choisir les deux dates.'); return; }
+  if (fin < debut) { alert('La date de fin doit être après la date de début.'); return; }
+  const absences = envChargerAbsences();
+  absences.push({ debut, fin, id: Date.now() });
+  envSauverAbsences(absences);
+  envAfficherListeAbsences();
+  showToast('✓ Période d\'absence enregistrée.');
+}
+function envSupprimerAbsence(id){
+  let absences = envChargerAbsences();
+  absences = absences.filter(function(a){ return a.id !== id; });
+  envSauverAbsences(absences);
+  envAfficherListeAbsences();
+}
+function envAfficherListeAbsences(){
+  const zone = document.getElementById('envListeAbsences');
+  const absences = envChargerAbsences();
+  if (!absences.length) { zone.innerHTML = '<em>Aucune période d\'absence enregistrée.</em>'; return; }
+  zone.innerHTML = '<strong>Périodes enregistrées :</strong><br>' + absences.map(function(a){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #eee;">'
+      + '<span>' + a.debut.split('-').reverse().join('/') + ' → ' + a.fin.split('-').reverse().join('/') + '</span>'
+      + '<button onclick="envSupprimerAbsence(' + a.id + ')" style="background:none;border:none;color:#c0392b;cursor:pointer;font-weight:700;">✕</button>'
+      + '</div>';
+  }).join('');
+}
+
 </script>
 
 <!-- LÉGUMES -->
@@ -3484,6 +3788,10 @@ async function resetAllData() {
     </div>
   </div>
 
+  <div style="max-width:1200px;margin:0 auto;padding:0 10px;display:flex;justify-content:flex-end;">
+    <button id="colBtnEffacer" style="background:#b91c1c;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:'Lato',sans-serif;">🗑 Effacer / Remplacer</button>
+  </div>
+
   <div class="table-zone">
     <table id="colMainTable">
       <thead>
@@ -3548,6 +3856,41 @@ async function resetAllData() {
       <div class="col-modal-actions">
         <button style="background:#e5e7eb;color:#374151;padding:8px 20px;border:none;border-radius:6px;font-weight:700;cursor:pointer;" onclick="colFermerModalSupp()">Annuler</button>
         <button style="background:#3182ce;color:#fff;padding:8px 20px;border:none;border-radius:6px;font-weight:700;cursor:pointer;" id="colBtnConfirmSupp">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EFFACER / REMPLACER (GLOBAL) -->
+  <div class="col-modal-overlay" id="colModalEffacer">
+    <div class="col-modal-box">
+      <h3>Effacer / Remplacer</h3>
+      <div class="col-modal-input" style="margin-bottom:10px;">
+        <label style="font-size:.8rem;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Lot (grille)</label>
+        <select id="colEffLot" class="col-modal-input"></select>
+      </div>
+      <div class="col-modal-input" style="margin-bottom:10px;">
+        <label style="font-size:.8rem;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Cycle</label>
+        <select id="colEffCycle" class="col-modal-input">
+          <option value="1">Cycle 1</option>
+          <option value="2">Cycle 2</option>
+          <option value="3">Cycle 3</option>
+          <option value="4">Cycle 4</option>
+        </select>
+      </div>
+      <div id="colEffTypeWrap" style="margin-bottom:10px;">
+        <label style="font-size:.8rem;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Que voulez-vous faire ?</label>
+        <select id="colEffType" class="col-modal-input">
+          <option value="grille">Effacer / remplacer la grille (lettre)</option>
+          <option value="bac">Effacer / remplacer le bac</option>
+        </select>
+      </div>
+      <div id="colEffValeurWrap" style="margin-bottom:12px;">
+        <label style="font-size:.8rem;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;" id="colEffValeurLabel">Nouvelle valeur</label>
+        <select id="colEffValeur" class="col-modal-input"></select>
+      </div>
+      <div class="col-modal-actions">
+        <button style="background:#e5e7eb;color:#374151;padding:8px 20px;border:none;border-radius:6px;font-weight:700;cursor:pointer;" onclick="colFermerModalEffacer()">Annuler</button>
+        <button style="background:#b91c1c;color:#fff;padding:8px 20px;border:none;border-radius:6px;font-weight:700;cursor:pointer;" id="colBtnConfirmEffacer">Confirmer</button>
       </div>
     </div>
   </div>
