@@ -13,6 +13,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;600&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -218,7 +220,7 @@
   td.hygro-val { color: var(--blue); font-weight: 700; }
   .chart-section { margin-bottom: 36px; }
   .chart-title { font-size: .9rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; text-align: center; margin-bottom: 14px; color: var(--text); }
-  .chart-wrap { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 16px; position: relative; height: 260px; }
+  .chart-wrap { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 16px; position: relative; height: 480px; }
   hr { border: none; border-top: 2px solid var(--border); margin: 28px 0; }
   .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: .85rem; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .3s; }
   .toast.show { opacity: 1; }
@@ -854,8 +856,8 @@
 </div>
 
 <div class="imprimer-bar" style="max-width:600px;">
-  <button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>
-  <button id="envBtnEffacer" class="btn-mise-a-zero" style="margin-left:10px;">🔄 Mise à zéro</button>
+  <button class="btn-imprimer" onclick="exporterEnPDF('page-env', 'environnement.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button>
+  <button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportEnvironnement()">📥 Télécharger CSV</button>
 </div>
 
 <!-- ── MÉTÉO ── -->
@@ -940,6 +942,14 @@
 <div class="obs-box" id="obsBox">
   <div class="obs-title">📝 Observations</div>
   <div id="obsContent"></div>
+</div>
+
+<div class="obs-box" style="display:block;">
+  <div class="obs-title">✅ Solution apportée</div>
+  <textarea id="envSolutionApportee" placeholder="Notez ici la solution apportée suite aux observations (ventilation, ajustement, intervention...)" style="width:100%;min-height:120px;border:1.5px solid var(--border);border-radius:8px;padding:12px;font-family:inherit;font-size:.92rem;resize:vertical;margin-top:8px;"></textarea>
+  <div style="text-align:right;margin-top:8px;">
+    <button id="envBtnSauverSolution" style="background:#38a169;color:#fff;border:none;border-radius:7px;padding:8px 18px;font-weight:700;font-size:.85rem;cursor:pointer;">💾 Enregistrer</button>
+  </div>
 </div>
 
 <hr>
@@ -1027,8 +1037,9 @@
   <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <h1>🌾 Stock de Son de Blé</h1>
   <div class="imprimer-bar" style="max-width:980px;">
-    <button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>
+    <button class="btn-imprimer" onclick="exporterEnPDF('page-son', 'son_de_ble.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button>
     <button class="btn-mise-a-zero" style="margin-left:10px;" onclick="sonMiseAZero()">🔄 Mise à zéro</button>
+    <button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportSonDeBle()">📥 Télécharger CSV</button>
   </div>
   <div id="alertBox">⚠ STOCK BAS — Cumul ≤ 20 kg !</div>
   <div class="form-section">
@@ -1389,8 +1400,25 @@ function envViderToutesLesDonnees(){
   if(t){ t.textContent='Données Environnement effacées.'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2500); }
 }
 
+const ENV_SOLUTION_KEY = 'env_solution_apportee';
+function envSauverSolution(){
+  const val = document.getElementById('envSolutionApportee').value;
+  localStorage.setItem(ENV_SOLUTION_KEY, val);
+  fbSafeSave(ENV_SOLUTION_KEY, val);
+  const t=document.getElementById('toast');
+  if(t){ t.textContent='Solution enregistrée.'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2200); }
+}
+async function envChargerSolution(){
+  const cloudVal = await fbSafeLoad(ENV_SOLUTION_KEY, null);
+  const val = (cloudVal!==null) ? cloudVal : (localStorage.getItem(ENV_SOLUTION_KEY)||'');
+  const ta = document.getElementById('envSolutionApportee');
+  if(ta) ta.value = val;
+  localStorage.setItem(ENV_SOLUTION_KEY, val);
+}
+
 function initEnvPage() {
   envDb = envLoadDB();
+  envChargerSolution();
   const yl = document.getElementById('yearLabel');
   if(yl) yl.textContent = new Date().getFullYear();
   if (!window._envClock) {
@@ -1401,8 +1429,8 @@ function initEnvPage() {
   fetchMeteo();
   if(!window._envEffacerAttache){
     window._envEffacerAttache = true;
-    const btn=document.getElementById('envBtnEffacer');
-    if(btn) btn.addEventListener('click', envViderToutesLesDonnees);
+    const btnSol=document.getElementById('envBtnSauverSolution');
+    if(btnSol) btnSol.addEventListener('click', envSauverSolution);
   }
 }
 
@@ -1991,33 +2019,20 @@ let colModalSuppLotId=null,colModalSuppCycle=null;
 function colOuvrirModalSupp(id,cycle){
   colModalSuppLotId=id;colModalSuppCycle=cycle;
   const lot=colLots.find(l=>l.id==id);
-  const cyc=lot?.['c'+cycle];
-  document.getElementById('colModalSuppTxt').textContent='Grille '+lot.grille+' – Cycle '+cycle;
-  const sel=document.getElementById('colModalNewBacInput');
-  sel.innerHTML='<option value="">-- Choisir --</option>';
-  sel.disabled=!!cyc?.oeufsConfirmes;
-  if(!cyc?.oeufsConfirmes){
-    const utilises=colBacsUtilises();
-    const bacActuel=cyc?.bac?+cyc.bac:null;
-    if(bacActuel)utilises.delete(bacActuel);
-    for(let i=1;i<=BAC_MAX;i++){if(!utilises.has(i)){const o=document.createElement('option');o.value=i;o.textContent=i+(i===bacActuel?' (actuel)':'');sel.appendChild(o);}}
-  }
+  document.getElementById('colModalSuppTxt').textContent='Grille '+lot.grille+' — Cycle '+cycle+' va être effacé.';
   document.getElementById('colBtnConfirmSupp').onclick=colConfirmerSupp;
   document.getElementById('colModalSupp').classList.add('open');
 }
 function colFermerModalSupp(){ document.getElementById('colModalSupp').classList.remove('open'); }
 function colConfirmerSupp(){
   const lot=colLots.find(l=>l.id==colModalSuppLotId); if(!lot){colFermerModalSupp();return;}
-  const cyc=lot['c'+colModalSuppCycle];
-  if(cyc?.done_chg){colFermerModalSupp();return;}
-  const newBac=parseInt(document.getElementById('colModalNewBacInput').value,10);
-  if(isNaN(newBac)){alert('Veuillez choisir un numéro de bac.');return;}
-  const u=colBacsUtilises();
-  const bacActuel=cyc?.bac?+cyc.bac:null;
-  if(bacActuel)u.delete(bacActuel);
-  if(u.has(newBac)){alert('Bac '+newBac+' déjà utilisé.');return;}
-  if(cyc)cyc.bac=newBac;
-  colSauver();colPeuplerBacs();colFermerModalSupp();colRafraichir();
+  // Effacer le cycle ciblé et tous les cycles suivants (un cycle 3 effacé implique l'effacement du 4)
+  for(let c=colModalSuppCycle; c<=4; c++){
+    lot['c'+c]=null;
+  }
+  colSauver();colPeuplerGrille();colPeuplerBacs();colFermerModalSupp();colRafraichir();
+  const t=document.getElementById('toast');
+  if(t){ t.textContent='Cycle '+colModalSuppCycle+' effacé.'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2500); }
 }
 
 function colRafraichir(){ colRafraichirAlertes(); colRafraichirTableau(); }
@@ -3227,8 +3242,18 @@ function larRender(){
     });
   });
 
+  const filtreBac=(document.getElementById('larRechercheBac')?.value||'').trim();
+  const filtreDate=(document.getElementById('larRechercheDate')?.value||'').trim();
+
   let rows='';
+  let nbAffiches=0;
   larData.forEach((row,i)=>{
+    if(filtreBac || filtreDate){
+      const matchBac = filtreBac && String(row.bac||'').indexOf(filtreBac)!==-1;
+      const matchDate = filtreDate && row.dateEntree===filtreDate;
+      if(!matchBac && !matchDate) return;
+    }
+    nbAffiches++;
     const entry=row.dateEntree;
     const j=entry?larDiff(entry,ts):null;
     const ast=larGetActiveStade(j);
@@ -3300,7 +3325,11 @@ function larRender(){
   }).join('');
 
   rows+='<tr class="lar-tot"><td class="lar-tot-lbl" colspan="2">Totaux &amp; moyennes</td>'+totCells+'<td></td></tr>';
-  tbody.innerHTML=rows;
+  if(nbAffiches===0 && (filtreBac||filtreDate)){
+    tbody.innerHTML='<tr class="lar-empty-row"><td colspan="10">Aucun bac ne correspond à la recherche.</td></tr>';
+  } else {
+    tbody.innerHTML=rows;
+  }
 
   tbody.querySelectorAll('.lar-poids-zone:not(.lar-auto-val)').forEach(z=>{
     z.addEventListener('click',function(e){
@@ -3424,6 +3453,13 @@ function larShowToast(msg){
 function larAttacherEvenements(){
   if(window._larEventsAttached) return;
   window._larEventsAttached=true;
+  document.getElementById('larRechercheBac').addEventListener('input', larRender);
+  document.getElementById('larRechercheDate').addEventListener('change', larRender);
+  document.getElementById('larBtnEffacerRecherche').addEventListener('click', function(){
+    document.getElementById('larRechercheBac').value='';
+    document.getElementById('larRechercheDate').value='';
+    larRender();
+  });
   document.getElementById('larBM15').addEventListener('click',function(){larShiftSim(-15);});
   document.getElementById('larBM1').addEventListener('click',function(){larShiftSim(-1);});
   document.getElementById('larBP1').addEventListener('click',function(){larShiftSim(1);});
@@ -3829,13 +3865,153 @@ function poidsMiseAZero(){
   poidsRender();
 }
 
+
+/* ══ EXPORT CSV — TÉLÉCHARGEMENT DES DONNÉES DE CHAQUE PAGE ══ */
+function telechargerCSV(filename, rows){
+  const csv = rows.map(r => r.map(v => {
+    const s = (v===null||v===undefined) ? '' : String(v);
+    return s.indexOf(';')!==-1 || s.indexOf('"')!==-1 || s.indexOf('\n')!==-1
+      ? '"'+s.replace(/"/g,'""')+'"' : s;
+  }).join(';')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportEnvironnement(){
+  const rows=[['Date','Heure','Température intérieure (°C)','Hygrométrie intérieure (%)','Température extérieure (°C)','Hygrométrie extérieure (%)']];
+  Object.keys(envDb).sort().forEach(function(dk){
+    (envDb[dk]||[]).forEach(function(e){
+      rows.push([dk, e.time, e.temp, e.hygro, e.meteoTemp??'', e.meteoHumid??'']);
+    });
+  });
+  telechargerCSV('environnement_'+envTodayKey()+'.csv', rows);
+}
+
+function exportSonDeBle(){
+  const data=sonLoad();
+  const rows=[['Date','Type','Quantité (kg)','N° Facture','Fournisseur']];
+  data.forEach(function(r){ rows.push([r.date,r.type,r.qte,r.fac||'',r.frs||'']); });
+  telechargerCSV('son_de_ble.csv', rows);
+}
+function exportLegumes(){
+  const data=legLoad();
+  const rows=[['Date','Légume','Type','Quantité (kg)','N° Lot/Facture','Fournisseur']];
+  data.forEach(function(r){ rows.push([r.date,r.legume||'',r.type,r.qte,r.fac||'',r.frs||'']); });
+  telechargerCSV('legumes.csv', rows);
+}
+function exportLevure(){
+  const data=levLoad();
+  const rows=[['Date','Type','Quantité (kg)','N° Facture','Fournisseur']];
+  data.forEach(function(r){ rows.push([r.date,r.type,r.qte,r.fac||'',r.frs||'']); });
+  telechargerCSV('levure.csv', rows);
+}
+function exportPoidsCasse(){
+  const data=poidsLoad();
+  const rows=[['Date','Type','Quantité (kg)','N° Facture','Fournisseur']];
+  data.forEach(function(r){ rows.push([r.date,r.type,r.qte,r.fac||'',r.frs||'']); });
+  telechargerCSV('poids_casse.csv', rows);
+}
+
+function exportColeopteres(){
+  const rows=[['Grille','Date entrée','Poids (g)','C1 Bac','C2 Bac','C3 Bac','C4 Bac']];
+  colLots.forEach(function(l){
+    rows.push([l.grille, l.dateEntree, l.poids, l.c1?l.c1.bac:'', l.c2?l.c2.bac:'', l.c3?l.c3.bac:'', l.c4?l.c4.bac:'']);
+  });
+  telechargerCSV('coleopteres.csv', rows);
+}
+
+function exportOeufs(){
+  const lignes=ponteLoadPonte();
+  const rows=[['Bac','Date entrée','Date sortie','Statut','Bac fusion']];
+  lignes.forEach(function(l){
+    const statut = l.sorti?'Sorti':(l.fusionne?'Fusionné':'Actif');
+    rows.push([l.bac, l.dateEntree, l.dateSortie, statut, l.bacFusion||'']);
+  });
+  telechargerCSV('oeufs_ponte.csv', rows);
+}
+
+function exportNymphes(){
+  const rows=[['Bac','Date entrée','Poids (g)','Date tri','Poids coléoptères (g)','Morts (g)']];
+  (NYM_DB.lots||[]).forEach(function(l){
+    const tris=l.tris||(l.tri?[l.tri]:[]);
+    if(tris.length===0){
+      rows.push([l.bac, l.dateEntree, l.poids, '', '', '']);
+    } else {
+      tris.forEach(function(t){ rows.push([l.bac, l.dateEntree, l.poids, t.date, t.poidsColeo, t.morts]); });
+    }
+  });
+  telechargerCSV('nymphes.csv', rows);
+}
+
+function exportLarves(){
+  const rows=[['Bac','Date entrée','Vers 00 (g)','Vers 0 (g)','Vers 20 (g)','Vers 12 (g)','Vers 10 (g)','Vers 08 (g)']];
+  larData.forEach(function(r){
+    rows.push([r.bac, r.dateEntree, r.v00??'', r.v0??'', r.v20??'', r.v12??'', r.v10??'', r.v08??'']);
+  });
+  telechargerCSV('larves.csv', rows);
+}
+
+
+/* ══ EXPORT PDF RÉEL (jsPDF + html2canvas) ══ */
+async function exporterEnPDF(pageId, filename){
+  const pageEl = document.getElementById(pageId);
+  if(!pageEl){ alert('Page introuvable.'); return; }
+
+  const t=document.getElementById('toast');
+  if(t){ t.textContent='Génération du PDF en cours...'; t.classList.add('show'); }
+
+  // Masquer temporairement les éléments non désirés (comme en impression)
+  const elementsACacher = pageEl.querySelectorAll(
+    '.user-badge-bar, .sim-date-bar, .lar-sim-bar, .nym-sim-bar, .btn-retour, .page-footer, .imprimer-bar, .form-section, .form-zone, .alert-config, .toolbar, .nym-actions-principales, .lar-toolbar, input, select, button'
+  );
+  const anciensDisplay = [];
+  elementsACacher.forEach(function(el){ anciensDisplay.push(el.style.display); el.style.display='none'; });
+
+  try {
+    const canvas = await html2canvas(pageEl, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    pdf.save(filename);
+    if(t){ t.textContent='PDF téléchargé.'; setTimeout(function(){t.classList.remove('show');},2200); }
+  } catch(e) {
+    console.error('Erreur génération PDF', e);
+    if(t){ t.textContent='Erreur lors de la génération du PDF.'; setTimeout(function(){t.classList.remove('show');},2500); }
+  } finally {
+    elementsACacher.forEach(function(el,i){ el.style.display = anciensDisplay[i]; });
+  }
+}
+
 </script>
 
 <!-- LÉGUMES -->
 <div id="page-leg" class="page">
   <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">🥦 Stock Légumes</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="legMiseAZero()">🔄 Mise à zéro</button></div>
+  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-leg', 'legumes.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="legMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportLegumes()">📥 Télécharger CSV</button></div>
   <div id="leg-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ <span id="leg-alertSeuil"></span> kg !</div>
   <div style="max-width:980px;margin:0 auto 18px auto;display:flex;align-items:center;gap:10px;font-size:.82rem;color:#555;">
     <label style="font-weight:700;text-transform:uppercase;">Seuil d'alerte (kg) :</label>
@@ -3871,7 +4047,7 @@ function poidsMiseAZero(){
 <div id="page-lev" class="page">
   <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">🫙 Stock Levure</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="levMiseAZero()">🔄 Mise à zéro</button></div>
+  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-lev', 'levure.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="levMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportLevure()">📥 Télécharger CSV</button></div>
   <div id="lev-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ 5 kg ! Veuillez commander de la levure.</div>
   <div class="form-section" style="border-top:3px solid #d4a855;">
     <h2 style="color:#5a3a00;">➕ Nouvelle ligne</h2>
@@ -3902,7 +4078,7 @@ function poidsMiseAZero(){
 <div id="page-poids" class="page">
   <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">⚖️ Stock Poids Cassé</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="poidsMiseAZero()">🔄 Mise à zéro</button></div>
+  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-poids', 'poids_casse.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="poidsMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportPoidsCasse()">📥 Télécharger CSV</button></div>
   <div id="poids-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ 5 kg ! Veuillez commander du poids cassé.</div>
   <div class="form-section" style="border-top:3px solid #1a5a54;">
     <h2 style="color:#1a5a54;">➕ Nouvelle ligne</h2>
@@ -3958,9 +4134,10 @@ function poidsMiseAZero(){
   </div>
 
   <div class="imprimer-bar">
-    <button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>
+    <button class="btn-imprimer" onclick="exporterEnPDF('page-col', 'coleopteres.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button>
     <button id="colBtnEffacer" style="background:#b91c1c;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:'Lato',sans-serif;margin-left:10px;">🗑 Effacer / Remplacer</button>
     <button id="colBtnMiseAZero" class="btn-mise-a-zero" style="margin-left:10px;">🔄 Mise à zéro</button>
+    <button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportColeopteres()">📥 Télécharger CSV</button>
   </div>
 
   <div class="table-zone">
@@ -4018,15 +4195,12 @@ function poidsMiseAZero(){
   <!-- MODAL CHANGER BAC -->
   <div class="col-modal-overlay" id="colModalSupp">
     <div class="col-modal-box">
-      <h3>Changer le numéro de bac</h3>
+      <h3>Effacer le cycle</h3>
       <p id="colModalSuppTxt"></p>
-      <div style="margin-bottom:12px;">
-        <label style="font-size:.8rem;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Nouveau N° Bac</label>
-        <select id="colModalNewBacInput" class="col-modal-input"></select>
-      </div>
+      <p style="font-size:.82rem;color:#b91c1c;margin-bottom:12px;">⚠️ Cette action efface définitivement ce cycle (et tous les cycles suivants liés). Le lot reste visible avec les cycles précédents conservés.</p>
       <div class="col-modal-actions">
         <button style="background:#e5e7eb;color:#374151;padding:8px 20px;border:none;border-radius:6px;font-weight:700;cursor:pointer;" onclick="colFermerModalSupp()">Annuler</button>
-        <button style="background:#3182ce;color:#fff;padding:8px 20px;border:none;border-radius:6px;font-weight:700;cursor:pointer;" id="colBtnConfirmSupp">Confirmer</button>
+        <button style="background:#b91c1c;color:#fff;padding:8px 20px;border:none;border-radius:6px;font-weight:700;cursor:pointer;" id="colBtnConfirmSupp">🗑 Effacer le cycle</button>
       </div>
     </div>
   </div>
@@ -4083,7 +4257,7 @@ function poidsMiseAZero(){
 </div>
   <h1>Tableau de Ponte</h1>
   <p class="ponte-subtitle">Suivi des bacs d'œufs — Tenebrio molitor</p>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="ponteMiseAZero()">🔄 Mise à zéro</button></div>
+  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-oeufs', 'oeufs_ponte.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="ponteMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportOeufs()">📥 Télécharger CSV</button></div>
 
   <div class="ponte-bandeau">
     <h3>✎ Saisie manuelle</h3>
@@ -4181,7 +4355,7 @@ function poidsMiseAZero(){
 </div>
 <h1>Comptabilisation des Nymphes</h1>
 <p class="nym-sous-titre">Suivi des bacs de nymphes — lien avec le tableau des larves</p>
-<div class="imprimer-bar" style="max-width:560px;"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="nymMiseAZero()">🔄 Mise à zéro</button></div>
+<div class="imprimer-bar" style="max-width:560px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-nymphes', 'nymphes.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="nymMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportNymphes()">📥 Télécharger CSV</button></div>
 
 <div class="nym-compteur-box">
   <div>
@@ -4364,7 +4538,7 @@ function poidsMiseAZero(){
   <div class="lar-sub">Suivi du développement larvaire — Tenebrio molitor</div>
 </div>
 
-<div class="imprimer-bar"><button class="btn-imprimer" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="larMiseAZero()">🔄 Mise à zéro</button></div>
+<div class="imprimer-bar"><button class="btn-imprimer" onclick="exporterEnPDF('page-larves', 'larves.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportLarves()">📥 Télécharger CSV</button></div>
 
 <div class="lar-sim-bar">
   <div class="lar-dot-real" id="larSimDot"></div>
@@ -4391,6 +4565,18 @@ function poidsMiseAZero(){
   </button>
   <button class="lar-btn-sec" id="larBtnExport">↓ CSV</button>
   <span class="lar-cnt" id="larCntBadge">0 bac(s)</span>
+</div>
+
+<div style="background:var(--lsurface);border:1px solid var(--lborder);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div style="flex:1;min-width:140px;">
+    <label style="display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--lsub);margin-bottom:4px;">🔍 Rechercher par N° bac</label>
+    <input type="text" id="larRechercheBac" placeholder="Ex: 12" style="width:100%;border:1.5px solid var(--lborder);border-radius:8px;padding:8px 10px;font-size:.88rem;">
+  </div>
+  <div style="flex:1;min-width:140px;">
+    <label style="display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--lsub);margin-bottom:4px;">📅 Rechercher par date d'entrée</label>
+    <input type="date" id="larRechercheDate" style="width:100%;border:1.5px solid var(--lborder);border-radius:8px;padding:8px 10px;font-size:.88rem;">
+  </div>
+  <button class="lar-btn-sec" id="larBtnEffacerRecherche" style="height:38px;">✕ Effacer</button>
 </div>
 
 <div class="lar-tw">
