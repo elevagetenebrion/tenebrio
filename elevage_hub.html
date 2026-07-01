@@ -3242,15 +3242,18 @@ function larRender(){
     });
   });
 
-  const filtreBac=(document.getElementById('larRechercheBac')?.value||'').trim();
+  const filtreBacRaw=(document.getElementById('larRechercheBac')?.value||'').trim();
   const filtreDate=(document.getElementById('larRechercheDate')?.value||'').trim();
+  // Support multi-bacs séparés par virgule ou espace : "12, 15 23" → ['12','15','23']
+  const filtreBacs = filtreBacRaw ? filtreBacRaw.split(/[,\s]+/).map(s=>s.trim()).filter(s=>s.length>0) : [];
 
   let rows='';
   let nbAffiches=0;
   larData.forEach((row,i)=>{
-    if(filtreBac || filtreDate){
-      const matchBac = filtreBac && String(row.bac||'').indexOf(filtreBac)!==-1;
-      const matchDate = filtreDate && row.dateEntree===filtreDate;
+    if(filtreBacs.length>0 || filtreDate){
+      const bacStr = String(row.bac||'').trim();
+      const matchBac = filtreBacs.length>0 && filtreBacs.some(function(f){ return bacStr===f || bacStr.indexOf(f)!==-1; });
+      const matchDate = filtreDate && (row.dateEntree||'').trim()===filtreDate;
       if(!matchBac && !matchDate) return;
     }
     nbAffiches++;
@@ -3325,7 +3328,7 @@ function larRender(){
   }).join('');
 
   rows+='<tr class="lar-tot"><td class="lar-tot-lbl" colspan="2">Totaux &amp; moyennes</td>'+totCells+'<td></td></tr>';
-  if(nbAffiches===0 && (filtreBac||filtreDate)){
+  if(nbAffiches===0 && (filtreBacs.length>0||filtreDate)){
     tbody.innerHTML='<tr class="lar-empty-row"><td colspan="10">Aucun bac ne correspond à la recherche.</td></tr>';
   } else {
     tbody.innerHTML=rows;
@@ -4570,7 +4573,7 @@ async function exporterEnPDF(pageId, filename){
 <div style="background:var(--lsurface);border:1px solid var(--lborder);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
   <div style="flex:1;min-width:140px;">
     <label style="display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--lsub);margin-bottom:4px;">🔍 Rechercher par N° bac</label>
-    <input type="text" id="larRechercheBac" placeholder="Ex: 12" style="width:100%;border:1.5px solid var(--lborder);border-radius:8px;padding:8px 10px;font-size:.88rem;">
+    <input type="text" id="larRechercheBac" placeholder="Ex: 12 ou 12, 15, 23" style="width:100%;border:1.5px solid var(--lborder);border-radius:8px;padding:8px 10px;font-size:.88rem;">
   </div>
   <div style="flex:1;min-width:140px;">
     <label style="display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--lsub);margin-bottom:4px;">📅 Rechercher par date d'entrée</label>
