@@ -957,9 +957,9 @@
 <div class="section-title">📊 Mesures du jour</div>
 <div class="log-table-wrap">
   <table id="logTable">
-    <thead><tr><th>Heure</th><th>Température (°C)</th><th>Hygrométrie (%)</th><th style="color:var(--orange);">🌡 Météo extérieure</th><th style="color:var(--blue);">💧 Météo extérieure</th></tr></thead>
+    <thead><tr><th>Heure</th><th>Température (°C)</th><th>Hygrométrie (%)</th><th style="color:var(--orange);">🌡 Météo extérieure</th><th style="color:var(--blue);">💧 Météo extérieure</th><th style="color:#38a169;">✅ Solution apportée</th></tr></thead>
     <tbody id="logBody">
-      <tr><td colspan="5" style="color:var(--sub);text-align:center;padding:16px">Aucune mesure enregistrée aujourd'hui.</td></tr>
+      <tr><td colspan="6" style="color:var(--sub);text-align:center;padding:16px">Aucune mesure enregistrée aujourd'hui.</td></tr>
     </tbody>
   </table>
 </div>
@@ -1249,16 +1249,23 @@ function enregistrer() {
   const hygro = parseFloat(envState.hygro);
   if (isNaN(temp)||isNaN(hygro)) { showToast('Veuillez saisir température et hygrométrie.'); return; }
   const now = new Date();
+  const solutionEl = document.getElementById('envSolutionApportee');
   const entry = {
     time: now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
     temp, hygro, ts: now.toISOString(),
     meteoTemp: envDerniereMeteo.temp,
-    meteoHumid: envDerniereMeteo.humid
+    meteoHumid: envDerniereMeteo.humid,
+    solution: solutionEl ? solutionEl.value.trim() : ''
   };
   const dk = envTodayKey();
   if (!envDb[dk]) envDb[dk] = [];
   envDb[dk].push(entry);
   envSaveDB();
+  // Vider la solution après enregistrement (elle est maintenant dans le tableau)
+  const solutionElClear = document.getElementById('envSolutionApportee');
+  if(solutionElClear) solutionElClear.value = '';
+  localStorage.setItem(ENV_SOLUTION_KEY, '');
+  fbSafeSave(ENV_SOLUTION_KEY, '');
   clearField('temp'); clearField('hygro');
   showToast('✓ Mesure enregistrée');
   envRenderAll();
@@ -1293,11 +1300,12 @@ function envRenderTable() {
   const tbody = document.getElementById('logBody');
   if (!tbody) return;
   const entries = envDb[envTodayKey()]||[];
-  if (!entries.length) { tbody.innerHTML='<tr><td colspan="5" style="color:var(--sub);text-align:center;padding:16px">Aucune mesure enregistrée aujourd\'hui.</td></tr>'; return; }
+  if (!entries.length) { tbody.innerHTML='<tr><td colspan="6" style="color:var(--sub);text-align:center;padding:16px">Aucune mesure enregistrée aujourd\'hui.</td></tr>'; return; }
   tbody.innerHTML = entries.map(e=>{
     const mTemp = (e.meteoTemp!==null&&e.meteoTemp!==undefined) ? e.meteoTemp.toFixed(1)+'°C' : '—';
     const mHumid = (e.meteoHumid!==null&&e.meteoHumid!==undefined) ? e.meteoHumid.toFixed(0)+'%' : '—';
-    return `<tr><td>${e.time}</td><td class="temp-val">${e.temp.toFixed(1)}</td><td class="hygro-val">${e.hygro.toFixed(1)}</td><td style="color:var(--orange);">${mTemp}</td><td style="color:var(--blue);">${mHumid}</td></tr>`;
+    const sol = e.solution ? e.solution : '—';
+    return `<tr><td>${e.time}</td><td class="temp-val">${e.temp.toFixed(1)}</td><td class="hygro-val">${e.hygro.toFixed(1)}</td><td style="color:var(--orange);">${mTemp}</td><td style="color:var(--blue);">${mHumid}</td><td style="color:#38a169;font-size:.82rem;">${sol}</td></tr>`;
   }).join('');
 }
 
@@ -1410,9 +1418,13 @@ function envSauverSolution(){
 }
 async function envChargerSolution(){
   const cloudVal = await fbSafeLoad(ENV_SOLUTION_KEY, null);
-  const val = (cloudVal!==null) ? cloudVal : (localStorage.getItem(ENV_SOLUTION_KEY)||'');
+  const localVal = localStorage.getItem(ENV_SOLUTION_KEY)||'';
+  const val = (cloudVal!==null) ? cloudVal : localVal;
   const ta = document.getElementById('envSolutionApportee');
-  if(ta) ta.value = val;
+  // Ne pas écraser si l'utilisateur est en train d'écrire (focus sur la textarea)
+  if(ta && document.activeElement !== ta){
+    ta.value = val;
+  }
   localStorage.setItem(ENV_SOLUTION_KEY, val);
 }
 
@@ -1431,6 +1443,7 @@ function initEnvPage() {
     window._envEffacerAttache = true;
     const btnSol=document.getElementById('envBtnSauverSolution');
     if(btnSol) btnSol.addEventListener('click', envSauverSolution);
+
   }
 }
 
