@@ -1014,8 +1014,9 @@
   </div>
 
   <div id="envHistSemainePanel" style="display:none;">
+    <p style="font-size:.78rem;color:var(--sub);text-align:center;margin-bottom:10px;">Choisissez n'importe quel jour : la semaine complète (lundi → dimanche) qui le contient sera affichée.</p>
     <div style="display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
-      <input type="week" id="envHistSemaineChoisie" style="padding:8px;border:1.5px solid #e2e6ea;border-radius:7px;">
+      <input type="date" id="envHistSemaineChoisie" style="padding:8px;border:1.5px solid #e2e6ea;border-radius:7px;">
       <button onclick="envHistAfficherSemaine()" style="background:#dd6b20;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-weight:700;cursor:pointer;">Afficher</button>
     </div>
     <div id="envHistSemaineResume" style="text-align:center;font-size:.85rem;color:var(--sub);margin-bottom:10px;font-weight:700;"></div>
@@ -1513,7 +1514,7 @@ function initEnvPage() {
     const sInput = document.getElementById('envHistSemaineChoisie');
     const mInput = document.getElementById('envHistMoisChoisi');
     if(dInput) dInput.value = envTodayKey();
-    if(sInput) sInput.value = envCurrentISOWeekString();
+    if(sInput) sInput.value = envTodayKey();
     if(mInput) mInput.value = envMonthKey();
   }
 }
@@ -1538,41 +1539,24 @@ function envHistBasculerOnglet(onglet){
   if(moisPanel) moisPanel.style.display = onglet==='mois' ? 'block' : 'none';
 }
 
-function envHistISOWeekToDates(weekStr){
-  const parts = weekStr.split('-W');
-  const year = parseInt(parts[0],10);
-  const week = parseInt(parts[1],10);
-  const jan4 = new Date(year,0,4);
-  const jan4Dow = (jan4.getDay()+6)%7; // 0=lundi
-  const mondayWeek1 = new Date(jan4);
-  mondayWeek1.setDate(jan4.getDate()-jan4Dow);
-  const monday = new Date(mondayWeek1);
-  monday.setDate(mondayWeek1.getDate() + (week-1)*7);
+function envHistSemaineDatesDepuisDate(dateISO){
+  const d = new Date(dateISO+'T00:00:00');
+  const dow = (d.getDay()+6)%7; // 0=lundi ... 6=dimanche
+  const monday = new Date(d);
+  monday.setDate(d.getDate()-dow);
   const dates=[];
   for(let i=0;i<7;i++){
-    const d = new Date(monday);
-    d.setDate(monday.getDate()+i);
-    dates.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+    const dd = new Date(monday);
+    dd.setDate(monday.getDate()+i);
+    dates.push(dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'));
   }
   return dates;
 }
 
-function envCurrentISOWeekString(){
-  const now = new Date();
-  const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-  const dayNum = (d.getUTCDay()+6)%7;
-  d.setUTCDate(d.getUTCDate()-dayNum+3);
-  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(),0,4));
-  const firstThursdayDayNum = (firstThursday.getUTCDay()+6)%7;
-  firstThursday.setUTCDate(firstThursday.getUTCDate()-firstThursdayDayNum+3);
-  const weekNum = 1 + Math.round((d-firstThursday)/(7*24*3600*1000));
-  return d.getUTCFullYear()+'-W'+String(weekNum).padStart(2,'0');
-}
-
 function envHistAfficherSemaine(){
-  const semaineStr = document.getElementById('envHistSemaineChoisie').value;
-  if(!semaineStr){ showToast('Choisissez une semaine.'); return; }
-  const jours = envHistISOWeekToDates(semaineStr);
+  const dateChoisie = document.getElementById('envHistSemaineChoisie').value;
+  if(!dateChoisie){ showToast('Choisissez un jour de la semaine à consulter.'); return; }
+  const jours = envHistSemaineDatesDepuisDate(dateChoisie);
   const tbody = document.getElementById('envHistSemaineBody');
   const resume = document.getElementById('envHistSemaineResume');
   const labelDebut = jours[0].split('-').reverse().join('/');
@@ -1736,13 +1720,13 @@ function envHistExporterCSV(){
     entries.forEach(function(e){ rows.push([dateISO, e.time, e.temp, e.hygro, e.meteoTemp??'', e.meteoHumid??'', e.solution||'']); });
     telechargerCSV('environnement_controle_'+dateISO+'.csv', rows);
   } else if(envHistOngletActuel==='semaine'){
-    const semaineStr = document.getElementById('envHistSemaineChoisie').value;
-    if(!semaineStr){ showToast('Choisissez une semaine à exporter.'); return; }
-    const jours = envHistISOWeekToDates(semaineStr);
+    const dateChoisie = document.getElementById('envHistSemaineChoisie').value;
+    if(!dateChoisie){ showToast('Choisissez un jour de la semaine à exporter.'); return; }
+    const jours = envHistSemaineDatesDepuisDate(dateChoisie);
     jours.forEach(function(dk){
       (envDb[dk]||[]).forEach(function(e){ rows.push([dk, e.time, e.temp, e.hygro, e.meteoTemp??'', e.meteoHumid??'', e.solution||'']); });
     });
-    telechargerCSV('environnement_controle_'+semaineStr+'.csv', rows);
+    telechargerCSV('environnement_controle_semaine_'+jours[0]+'.csv', rows);
   } else {
     const moisISO = document.getElementById('envHistMoisChoisi').value;
     if(!moisISO){ showToast('Choisissez un mois à exporter.'); return; }
@@ -1760,9 +1744,10 @@ function envHistExporterPDF(){
     if(!dateISO){ showToast('Choisissez et affichez une date d\'abord.'); return; }
     exporterEnPDF('envHistoriquePanel', 'trace_controle_environnement_'+dateISO+'.pdf');
   } else if(envHistOngletActuel==='semaine'){
-    const semaineStr = document.getElementById('envHistSemaineChoisie').value;
-    if(!semaineStr){ showToast('Choisissez et affichez une semaine d\'abord.'); return; }
-    exporterEnPDF('envHistoriquePanel', 'trace_controle_environnement_'+semaineStr+'.pdf');
+    const dateChoisie = document.getElementById('envHistSemaineChoisie').value;
+    if(!dateChoisie){ showToast('Choisissez et affichez une semaine d\'abord.'); return; }
+    const jours = envHistSemaineDatesDepuisDate(dateChoisie);
+    exporterEnPDF('envHistoriquePanel', 'trace_controle_environnement_semaine_'+jours[0]+'.pdf');
   } else {
     const moisISO = document.getElementById('envHistMoisChoisi').value;
     if(!moisISO){ showToast('Choisissez et affichez un mois d\'abord.'); return; }
