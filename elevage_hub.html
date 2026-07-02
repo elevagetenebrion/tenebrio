@@ -987,6 +987,52 @@
   <div class="chart-wrap" style="cursor:zoom-in;" onclick="ouvrirZoomGraph('envChartMonth')"><canvas id="chartMonth"></canvas></div>
 </div>
 
+<hr>
+
+<div class="section-title">🗂 Historique des contrôles (archive)</div>
+<div id="envHistoriquePanel" style="max-width:680px;margin:0 auto 24px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:18px;">
+  <p style="font-size:.8rem;color:var(--sub);text-align:center;margin-bottom:14px;">Toutes les mesures enregistrées sont conservées automatiquement (local + cloud). Consultez ici le tableau et le graphique de n'importe quel jour ou mois passé, et générez-en une trace PDF ou CSV pour vos contrôles.</p>
+  <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;flex-wrap:wrap;">
+    <button class="env-hist-tab-btn" data-tab="jour" onclick="envHistBasculerOnglet('jour')" style="padding:8px 16px;border:1.5px solid #dd6b20;border-radius:7px;background:#dd6b20;color:#fff;font-weight:700;cursor:pointer;">📅 Par jour</button>
+    <button class="env-hist-tab-btn" data-tab="mois" onclick="envHistBasculerOnglet('mois')" style="padding:8px 16px;border:1.5px solid #dd6b20;border-radius:7px;background:#fff;color:#dd6b20;font-weight:700;cursor:pointer;">🗓 Par mois</button>
+  </div>
+
+  <div id="envHistJourPanel">
+    <div style="display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+      <input type="date" id="envHistDateChoisie" style="padding:8px;border:1.5px solid #e2e6ea;border-radius:7px;">
+      <button onclick="envHistAfficherJour()" style="background:#dd6b20;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-weight:700;cursor:pointer;">Afficher</button>
+    </div>
+    <div id="envHistJourResume" style="text-align:center;font-size:.85rem;color:var(--sub);margin-bottom:10px;font-weight:700;"></div>
+    <div class="log-table-wrap">
+      <table id="envHistJourTable">
+        <thead><tr><th>Heure</th><th>Température (°C)</th><th>Hygrométrie (%)</th><th style="color:var(--orange);">🌡 Météo extérieure</th><th style="color:var(--blue);">💧 Météo extérieure</th><th style="color:#38a169;">✅ Solution apportée</th></tr></thead>
+        <tbody id="envHistJourBody"><tr><td colspan="6" style="color:var(--sub);text-align:center;padding:16px">Choisissez une date puis cliquez sur Afficher.</td></tr></tbody>
+      </table>
+    </div>
+    <div class="chart-wrap" style="height:260px;margin-top:14px;"><canvas id="envHistChartJour"></canvas></div>
+  </div>
+
+  <div id="envHistMoisPanel" style="display:none;">
+    <div style="display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+      <input type="month" id="envHistMoisChoisi" style="padding:8px;border:1.5px solid #e2e6ea;border-radius:7px;">
+      <button onclick="envHistAfficherMois()" style="background:#dd6b20;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-weight:700;cursor:pointer;">Afficher</button>
+    </div>
+    <div id="envHistMoisResume" style="text-align:center;font-size:.85rem;color:var(--sub);margin-bottom:10px;font-weight:700;"></div>
+    <div class="log-table-wrap">
+      <table id="envHistMoisTable">
+        <thead><tr><th>Date</th><th>Nb mesures</th><th>Moy. Temp. int. (°C)</th><th>Moy. Hygro. int. (%)</th><th style="color:var(--orange);">Moy. Temp. ext. (°C)</th><th style="color:var(--blue);">Moy. Hygro. ext. (%)</th></tr></thead>
+        <tbody id="envHistMoisBody"><tr><td colspan="6" style="color:var(--sub);text-align:center;padding:16px">Choisissez un mois puis cliquez sur Afficher.</td></tr></tbody>
+      </table>
+    </div>
+    <div class="chart-wrap" style="height:260px;margin-top:14px;"><canvas id="envHistChartMois"></canvas></div>
+  </div>
+
+  <div style="text-align:center;margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+    <button class="btn-imprimer" onclick="envHistExporterPDF()">📄 Trace PDF du contrôle</button>
+    <button class="btn-mise-a-zero" style="background:#1a5276;" onclick="envHistExporterCSV()">📥 CSV de la période</button>
+  </div>
+</div>
+
 <!-- POPUP GRAPHIQUES AVEC SÉLECTEUR DE PÉRIODE -->
 <div id="envGraphOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9400;align-items:center;justify-content:center;padding:16px;">
   <div style="background:#fff;border-radius:14px;padding:20px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;">
@@ -1444,6 +1490,160 @@ function initEnvPage() {
     const btnSol=document.getElementById('envBtnSauverSolution');
     if(btnSol) btnSol.addEventListener('click', envSauverSolution);
 
+  }
+  if(!window._envHistInit){
+    window._envHistInit = true;
+    const dInput = document.getElementById('envHistDateChoisie');
+    const mInput = document.getElementById('envHistMoisChoisi');
+    if(dInput) dInput.value = envTodayKey();
+    if(mInput) mInput.value = envMonthKey();
+  }
+}
+
+/* ══ HISTORIQUE / ARCHIVE DES CONTRÔLES (consultation par date et par mois) ══ */
+let envHistOngletActuel = 'jour';
+let envHistChartJourInstance = null;
+let envHistChartMoisInstance = null;
+
+function envHistBasculerOnglet(onglet){
+  envHistOngletActuel = onglet;
+  document.querySelectorAll('.env-hist-tab-btn').forEach(function(b){
+    const actif = b.dataset.tab===onglet;
+    b.style.background = actif ? '#dd6b20' : '#fff';
+    b.style.color = actif ? '#fff' : '#dd6b20';
+  });
+  const jourPanel = document.getElementById('envHistJourPanel');
+  const moisPanel = document.getElementById('envHistMoisPanel');
+  if(jourPanel) jourPanel.style.display = onglet==='jour' ? 'block' : 'none';
+  if(moisPanel) moisPanel.style.display = onglet==='mois' ? 'block' : 'none';
+}
+
+function envHistAfficherJour(){
+  const dateISO = document.getElementById('envHistDateChoisie').value;
+  if(!dateISO){ showToast('Choisissez une date.'); return; }
+  const entries = (envDb[dateISO]||[]).slice().sort(function(a,b){ return (a.ts||'').localeCompare(b.ts||''); });
+  const tbody = document.getElementById('envHistJourBody');
+  const resume = document.getElementById('envHistJourResume');
+  const dateAffichee = new Date(dateISO+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if(!entries.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--sub);text-align:center;padding:16px">Aucune mesure enregistrée le '+dateAffichee+'.</td></tr>';
+    resume.textContent = dateAffichee.charAt(0).toUpperCase()+dateAffichee.slice(1)+' — aucune donnée.';
+  } else {
+    tbody.innerHTML = entries.map(function(e){
+      const mTemp = (e.meteoTemp!==null&&e.meteoTemp!==undefined) ? e.meteoTemp.toFixed(1)+'°C' : '—';
+      const mHumid = (e.meteoHumid!==null&&e.meteoHumid!==undefined) ? e.meteoHumid.toFixed(0)+'%' : '—';
+      const sol = e.solution ? e.solution : '—';
+      return '<tr><td>'+e.time+'</td><td class="temp-val">'+e.temp.toFixed(1)+'</td><td class="hygro-val">'+e.hygro.toFixed(1)+'</td><td style="color:var(--orange);">'+mTemp+'</td><td style="color:var(--blue);">'+mHumid+'</td><td style="color:#38a169;font-size:.82rem;">'+sol+'</td></tr>';
+    }).join('');
+    const avgT = envMean(entries.map(function(e){return e.temp;}));
+    const avgH = envMean(entries.map(function(e){return e.hygro;}));
+    resume.textContent = dateAffichee.charAt(0).toUpperCase()+dateAffichee.slice(1)+' — '+entries.length+' mesure(s) — Moy. '+avgT.toFixed(1)+'°C / '+avgH.toFixed(1)+'%';
+  }
+  envHistRenderChartJour(entries);
+}
+
+function envHistRenderChartJour(entries){
+  const canvas = document.getElementById('envHistChartJour');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const labels = entries.map(function(e){return e.time;});
+  const temps = entries.map(function(e){return e.temp;});
+  const hygros = entries.map(function(e){return e.hygro;});
+  const meteoTemps = entries.map(function(e){return (e.meteoTemp!==undefined&&e.meteoTemp!==null)?e.meteoTemp:null;});
+  const meteoHygros = entries.map(function(e){return (e.meteoHumid!==undefined&&e.meteoHumid!==null)?e.meteoHumid:null;});
+  const datasets = [
+    { label:'Température intérieure (°C)', data:temps, borderColor:'#e53e3e', backgroundColor:'rgba(229,62,62,0.1)', tension:.35, pointRadius:4, fill:false, yAxisID:'yT', spanGaps:true },
+    { label:'Hygrométrie intérieure (%)', data:hygros, borderColor:'#3182ce', backgroundColor:'rgba(49,130,206,0.1)', tension:.35, pointRadius:4, fill:false, yAxisID:'yH', spanGaps:true },
+    { label:'Température extérieure (°C)', data:meteoTemps, borderColor:'#dd6b20', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yT', spanGaps:true },
+    { label:'Hygrométrie extérieure (%)', data:meteoHygros, borderColor:'#38a169', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yH', spanGaps:true },
+  ];
+  if (envHistChartJourInstance) envHistChartJourInstance.destroy();
+  envHistChartJourInstance = new Chart(ctx, { type:'line', data:{labels:labels.length?labels:['—'],datasets}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}, scales:{ yT:{type:'linear',position:'left',min:10,max:40,title:{display:true,text:'°C'}}, yH:{type:'linear',position:'right',min:20,max:100,title:{display:true,text:'%'},grid:{drawOnChartArea:false}}, x:{} } } });
+}
+
+function envHistAfficherMois(){
+  const moisISO = document.getElementById('envHistMoisChoisi').value;
+  if(!moisISO){ showToast('Choisissez un mois.'); return; }
+  const jours = Object.keys(envDb).filter(function(k){return k.startsWith(moisISO);}).sort();
+  const tbody = document.getElementById('envHistMoisBody');
+  const resume = document.getElementById('envHistMoisResume');
+  const parts = moisISO.split('-');
+  const moisLabel = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, 1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const moisLabelMaj = moisLabel.charAt(0).toUpperCase()+moisLabel.slice(1);
+  if(!jours.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--sub);text-align:center;padding:16px">Aucune mesure enregistrée en '+moisLabel+'.</td></tr>';
+    resume.textContent = moisLabelMaj+' — aucune donnée.';
+  } else {
+    let totalMesures = 0;
+    tbody.innerHTML = jours.map(function(dk){
+      const entries = envDb[dk]||[];
+      totalMesures += entries.length;
+      const avgT = envMean(entries.map(function(e){return e.temp;}));
+      const avgH = envMean(entries.map(function(e){return e.hygro;}));
+      const mt = entries.map(function(e){return e.meteoTemp;}).filter(function(v){return v!==null&&v!==undefined;});
+      const mh = entries.map(function(e){return e.meteoHumid;}).filter(function(v){return v!==null&&v!==undefined;});
+      const avgMT = mt.length?envMean(mt):null;
+      const avgMH = mh.length?envMean(mh):null;
+      const dLabel = dk.split('-').reverse().join('/');
+      return '<tr><td>'+dLabel+'</td><td>'+entries.length+'</td><td class="temp-val">'+(avgT!==null?avgT.toFixed(1):'—')+'</td><td class="hygro-val">'+(avgH!==null?avgH.toFixed(1):'—')+'</td><td style="color:var(--orange);">'+(avgMT!==null?avgMT.toFixed(1):'—')+'</td><td style="color:var(--blue);">'+(avgMH!==null?avgMH.toFixed(0):'—')+'</td></tr>';
+    }).join('');
+    const joursAvgT = jours.map(function(dk){const e=envDb[dk]||[];return e.length?envMean(e.map(function(x){return x.temp;})):null;}).filter(function(v){return v!==null;});
+    const joursAvgH = jours.map(function(dk){const e=envDb[dk]||[];return e.length?envMean(e.map(function(x){return x.hygro;})):null;}).filter(function(v){return v!==null;});
+    const gAvgT = envMean(joursAvgT);
+    const gAvgH = envMean(joursAvgH);
+    resume.textContent = moisLabelMaj+' — '+jours.length+' jour(s) contrôlé(s), '+totalMesures+' mesure(s) — Moy. mensuelle '+gAvgT.toFixed(1)+'°C / '+gAvgH.toFixed(1)+'%';
+  }
+  envHistRenderChartMois(jours);
+}
+
+function envHistRenderChartMois(jours){
+  const canvas = document.getElementById('envHistChartMois');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const labels = jours.map(function(d){return d.slice(8);});
+  const avgTemps = jours.map(function(d){const e=envDb[d];return e&&e.length?envMean(e.map(function(x){return x.temp;})):null;});
+  const avgHygros = jours.map(function(d){const e=envDb[d];return e&&e.length?envMean(e.map(function(x){return x.hygro;})):null;});
+  const avgMeteoTemps = jours.map(function(d){const e=envDb[d]||[]; const v=e.map(function(x){return x.meteoTemp;}).filter(function(x){return x!==null&&x!==undefined;}); return v.length?envMean(v):null;});
+  const avgMeteoHygros = jours.map(function(d){const e=envDb[d]||[]; const v=e.map(function(x){return x.meteoHumid;}).filter(function(x){return x!==null&&x!==undefined;}); return v.length?envMean(v):null;});
+  const datasets = [
+    { label:'Moy. temp. intérieure (°C)', data:avgTemps, borderColor:'#e53e3e', tension:.35, pointRadius:4, fill:false, yAxisID:'yT', spanGaps:true },
+    { label:'Moy. hygro. intérieure (%)', data:avgHygros, borderColor:'#3182ce', tension:.35, pointRadius:4, fill:false, yAxisID:'yH', spanGaps:true },
+    { label:'Moy. temp. extérieure (°C)', data:avgMeteoTemps, borderColor:'#dd6b20', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yT', spanGaps:true },
+    { label:'Moy. hygro. extérieure (%)', data:avgMeteoHygros, borderColor:'#38a169', borderDash:[4,3], tension:.35, pointRadius:3, fill:false, yAxisID:'yH', spanGaps:true },
+  ];
+  if (envHistChartMoisInstance) envHistChartMoisInstance.destroy();
+  envHistChartMoisInstance = new Chart(ctx, { type:'line', data:{labels:labels.length?labels:['—'],datasets}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}, scales:{ yT:{type:'linear',position:'left',min:10,max:40,title:{display:true,text:'°C'}}, yH:{type:'linear',position:'right',min:20,max:100,title:{display:true,text:'%'},grid:{drawOnChartArea:false}}, x:{title:{display:true,text:'Jour du mois'}} } } });
+}
+
+function envHistExporterCSV(){
+  if(envHistOngletActuel==='jour'){
+    const dateISO = document.getElementById('envHistDateChoisie').value;
+    if(!dateISO){ showToast('Choisissez une date à exporter.'); return; }
+    const entries = (envDb[dateISO]||[]).slice().sort(function(a,b){ return (a.ts||'').localeCompare(b.ts||''); });
+    const rows=[['Date','Heure','Température intérieure (°C)','Hygrométrie intérieure (%)','Température extérieure (°C)','Hygrométrie extérieure (%)','Solution apportée']];
+    entries.forEach(function(e){ rows.push([dateISO, e.time, e.temp, e.hygro, e.meteoTemp??'', e.meteoHumid??'', e.solution||'']); });
+    telechargerCSV('environnement_controle_'+dateISO+'.csv', rows);
+  } else {
+    const moisISO = document.getElementById('envHistMoisChoisi').value;
+    if(!moisISO){ showToast('Choisissez un mois à exporter.'); return; }
+    const jours = Object.keys(envDb).filter(function(k){return k.startsWith(moisISO);}).sort();
+    const rows=[['Date','Heure','Température intérieure (°C)','Hygrométrie intérieure (%)','Température extérieure (°C)','Hygrométrie extérieure (%)','Solution apportée']];
+    jours.forEach(function(dk){
+      (envDb[dk]||[]).forEach(function(e){ rows.push([dk, e.time, e.temp, e.hygro, e.meteoTemp??'', e.meteoHumid??'', e.solution||'']); });
+    });
+    telechargerCSV('environnement_controle_'+moisISO+'.csv', rows);
+  }
+}
+
+function envHistExporterPDF(){
+  if(envHistOngletActuel==='jour'){
+    const dateISO = document.getElementById('envHistDateChoisie').value;
+    if(!dateISO){ showToast('Choisissez et affichez une date d\'abord.'); return; }
+    exporterEnPDF('envHistoriquePanel', 'trace_controle_environnement_'+dateISO+'.pdf');
+  } else {
+    const moisISO = document.getElementById('envHistMoisChoisi').value;
+    if(!moisISO){ showToast('Choisissez et affichez un mois d\'abord.'); return; }
+    exporterEnPDF('envHistoriquePanel', 'trace_controle_environnement_'+moisISO+'.pdf');
   }
 }
 
