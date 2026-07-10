@@ -801,7 +801,7 @@
     </button>
     <button class="btn btn-larves" onclick="showPage('page-larves')">
       <svg width="34" height="22" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="12" r="3"/><circle cx="3.2" cy="11" r="0.8" fill="currentColor"/><path d="M3 9 Q2 6 1 5"/><path d="M5 9 Q6 6 7 5"/><path d="M7 12 Q10 8 13 12 Q16 16 19 12 Q22 8 25 12 Q28 16 31 12 Q34 8 37 10"/><line x1="13" y1="12" x2="13" y2="17"/><line x1="19" y1="12" x2="19" y2="17"/><line x1="25" y1="12" x2="25" y2="17"/></svg>
-      Larves
+      Vers
     </button>
     <button class="btn btn-nymphes" onclick="showPage('page-nymphes')">
       <svg width="26" height="28" viewBox="0 0 32 34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="16" cy="19" rx="6" ry="11" transform="rotate(-8 16 19)"/><path d="M11 15 Q16 13 21 15"/><path d="M10 20 Q16 18 22 20"/><path d="M11 25 Q16 23 21 25"/><path d="M13 8 Q14 6 16 7 Q18 6 19 8"/></svg>
@@ -3240,6 +3240,7 @@ function larRender(){
   const tbody=document.getElementById('larTbody'); if(!tbody) return;
   document.getElementById('larCntBadge').textContent=larData.length+' bac(s)';
 
+
   if(!larData.length){
     tbody.innerHTML='<tr class="lar-empty-row"><td colspan="10">Aucun bac — cliquez sur « Nouveau bac » pour commencer.</td></tr>';
     larUpdateChart([]); return;
@@ -3320,9 +3321,13 @@ function larRender(){
     }).join('');
 
     // Afficher le dernier travail effectué sur ce bac
-    const dernierTrav = (row.travaux && row.travaux.length > 0) ? row.travaux[row.travaux.length-1] : null;
-    const travBadge = dernierTrav
-      ? '<div style="font-size:.6rem;color:#3a7d44;font-weight:700;margin-top:3px;background:#e3f2e5;border-radius:4px;padding:2px 5px;">🔧 '+dernierTrav.type+' '+larTravFmtDate(dernierTrav.date)+'</div>'
+    const travBadge = (row.travaux && row.travaux.length > 0)
+      ? row.travaux.map(function(t, ti){
+          return '<div style="font-size:.6rem;color:#3a7d44;font-weight:700;margin-top:2px;background:#e3f2e5;border-radius:4px;padding:2px 5px;display:flex;align-items:center;gap:4px;">'
+            + '🔧 '+t.type+(t.poids?' ('+t.poids+' kg)':'')+' '+larTravFmtDate(t.date)
+            + '<button onclick="larSupprimerTravail('+i+','+ti+')" style="background:#b84030;color:#fff;border:none;border-radius:3px;padding:0 4px;font-size:.6rem;cursor:pointer;line-height:1.4;">✕</button>'
+            + '</div>';
+        }).join('')
       : '';
     rows+='<tr><td class="lar-tdt"><div class="lar-dtv">'+larFr(entry)+'</div>'+jbg+travBadge+'</td>'+
       '<td class="lar-tdb" style="vertical-align:middle;">'+(row.bac||'—')+'</td>'+
@@ -4372,6 +4377,16 @@ function larTravauxValiderTout(){
   larShowToast('✅ Travaux enregistrés !');
 }
 
+function larSupprimerTravail(rowIdx, travIdx){
+  if(!confirm('Supprimer ce travail de l\'historique ?')) return;
+  const row = larData[rowIdx];
+  if(!row || !row.travaux) return;
+  row.travaux.splice(travIdx, 1);
+  larSave();
+  larRender();
+  larShowToast('Travail supprimé de l\'historique.');
+}
+
 function larTravFmtDate(iso){
   if(!iso) return '—';
   const p = iso.split('-');
@@ -4807,7 +4822,7 @@ function larTravFmtDate(iso){
 <div id="page-larves" class="page">
 <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
 <div class="lar-header">
-  <h1>LARVES</h1>
+  <h1>VERS</h1>
   <div class="lar-sub">Suivi du développement larvaire — Tenebrio molitor</div>
 </div>
 
