@@ -807,38 +807,13 @@
       <svg width="26" height="28" viewBox="0 0 32 34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="16" cy="19" rx="6" ry="11" transform="rotate(-8 16 19)"/><path d="M11 15 Q16 13 21 15"/><path d="M10 20 Q16 18 22 20"/><path d="M11 25 Q16 23 21 25"/><path d="M13 8 Q14 6 16 7 Q18 6 19 8"/></svg>
       Nymphes
     </button>
-    <button class="btn btn-son" onclick="showPage('page-son')">
-      <svg width="28" height="30" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="32" x2="17" y2="11"/><ellipse cx="17" cy="8" rx="3.2" ry="6"/><ellipse cx="11" cy="13" rx="2.5" ry="4.5" transform="rotate(-22 11 13)"/><ellipse cx="10" cy="21" rx="2.5" ry="4.5" transform="rotate(-16 10 21)"/><ellipse cx="23" cy="13" rx="2.5" ry="4.5" transform="rotate(22 23 13)"/><ellipse cx="24" cy="21" rx="2.5" ry="4.5" transform="rotate(16 24 21)"/><line x1="17" y1="3" x2="17" y2="1"/><path d="M14 4 Q12 2 11 1"/><path d="M20 4 Q22 2 23 1"/></svg>
-      Son de blé
-    </button>
-
-    <button class="btn btn-poids" onclick="showPage('page-poids')">
-      <svg width="28" height="28" viewBox="0 0 34 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <!-- sac de farine -->
-        <path d="M10 8 Q8 10 8 22 Q8 27 17 27 Q26 27 26 22 Q26 10 24 8 Z"/>
-        <!-- lien du sac -->
-        <path d="M12 8 Q17 5 22 8"/>
-        <line x1="17" y1="5" x2="17" y2="3"/>
-        <!-- texture farine (points) -->
-        <circle cx="13" cy="16" r="1"/>
-        <circle cx="17" cy="14" r="1"/>
-        <circle cx="21" cy="16" r="1"/>
-        <circle cx="15" cy="20" r="1"/>
-        <circle cx="19" cy="20" r="1"/>
-        <!-- nuage de farine -->
-        <path d="M6 10 Q4 8 5 6 Q7 4 9 6"/>
-        <path d="M28 10 Q30 8 29 6 Q27 4 25 6"/>
+    <button class="btn btn-son" onclick="showPage('page-stocks')" style="background:#6B4F12;">
+      <svg width="28" height="28" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="20" width="8" height="10" rx="1"/>
+        <rect x="13" y="14" width="8" height="16" rx="1"/>
+        <rect x="22" y="8" width="8" height="22" rx="1"/>
       </svg>
-      Poids cassé
-    </button>
-
-    <button class="btn btn-levure" onclick="showPage('page-lev')">
-      <svg width="26" height="28" viewBox="0 0 32 34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="14" width="16" height="15" rx="3"/><rect x="6" y="10" width="20" height="5" rx="2"/><circle cx="13" cy="21" r="2.2"/><circle cx="20" cy="19" r="1.8"/><circle cx="17" cy="25" r="1.6"/><line x1="8" y1="17" x2="24" y2="17"/></svg>
-      Levure
-    </button>
-    <button class="btn btn-legumes" onclick="showPage('page-leg')">
-      <svg width="28" height="28" viewBox="0 0 34 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 Q22 10 21 16 Q20 22 17 26 Q14 22 13 16 Q12 10 14 6 Z"/><path d="M17 6 Q17 3 15 1"/><path d="M17 6 Q18 2 20 1"/><path d="M17 6 Q14 3 13 2"/><ellipse cx="8" cy="20" rx="5" ry="3" transform="rotate(-20 8 20)"/><path d="M10 15 Q11 12 12 13"/><circle cx="26" cy="21" r="4.5"/><path d="M26 16.5 Q26 14 27 13"/><path d="M26 16.5 Q24 14 23 13"/></svg>
-      Légumes
+      Stocks
     </button>
   </div>
 </div>
@@ -1030,42 +1005,70 @@
   </div>
 </div>
 
-<!-- SON DE BLÉ -->
-<div id="page-son" class="page">
+
+
+<!-- STOCKS CONSOLIDÉS -->
+<div id="page-stocks" class="page">
   <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1>🌾 Stock de Son de Blé</h1>
-  <div class="imprimer-bar" style="max-width:980px;">
-    <button class="btn-imprimer" onclick="exporterEnPDF('page-son', 'son_de_ble.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button>
-    <button class="btn-mise-a-zero" style="margin-left:10px;" onclick="sonMiseAZero()">🔄 Mise à zéro</button>
-    <button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportSonDeBle()">📥 Télécharger CSV</button>
+  <div class="imprimer-bar" style="max-width:1100px;">
+    <button class="btn-imprimer" onclick="exporterEnPDF('page-stocks','stocks.pdf')">📄 Enregistrer en PDF</button>
+    <button class="btn-imprimer" style="background:#5a6e8a;margin-left:8px;" onclick="window.print()">🖨 Imprimer</button>
+    <button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="stkDownloadCSV()">📥 Télécharger CSV</button>
+    <button class="btn-mise-a-zero" style="margin-left:10px;" onclick="stkClearStock()">🔄 Effacer ce stock</button>
   </div>
-  <div id="alertBox">⚠ STOCK BAS — Cumul ≤ 20 kg !</div>
-  <div class="form-section">
-    <h2>➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="inDate"></div>
-      <div class="form-group"><label>Type</label><select id="inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Facture</label><input type="text" id="inFac" placeholder="FAC-2026-001"></div>
-      <div class="form-group"><label>Nom FRS</label><input type="text" id="inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="btnAdd">✔ Ajouter</button></div>
+  <div style="background:#B8863B;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;border-radius:10px;margin-bottom:16px;">
+    <strong style="font-size:1.2rem;">📦 Gestion des stocks</strong>
+    <select id="stkSelect" style="font-size:1rem;padding:6px 10px;border-radius:6px;border:2px solid #000;background:#fff;font-weight:600;">
+      <option value="son_de_ble">Son de blé</option>
+      <option value="levure">Levure</option>
+      <option value="farine_poids_casse">Farine / Poids cassé</option>
+      <option value="legumes">Légumes</option>
+    </select>
+  </div>
+  <div style="background:#fff;border:3px solid #B8863B;border-radius:8px;padding:16px;margin-bottom:20px;">
+    <h3 id="stkPanelTitle" style="margin-top:0;color:#000;border-bottom:2px solid #B8863B;padding-bottom:6px;">Son de blé</h3>
+    <div id="stkAlertBanner" style="display:none;background:#fff3cd;border:2px solid #d4a017;color:#000;font-weight:700;padding:10px 14px;border-radius:6px;margin-bottom:14px;"></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;align-items:end;margin-bottom:14px;">
+      <div><label style="font-size:.75rem;font-weight:600;display:block;margin-bottom:2px;">Date</label><input type="date" id="stk_date" style="width:100%;padding:6px;border:1px solid #999;border-radius:4px;"></div>
+      <div><label style="font-size:.75rem;font-weight:600;display:block;margin-bottom:2px;">Fournisseur</label><input type="text" id="stk_fournisseur" placeholder="Fournisseur" style="width:100%;padding:6px;border:1px solid #999;border-radius:4px;"></div>
+      <div><label style="font-size:.75rem;font-weight:600;display:block;margin-bottom:2px;">N° facture</label><input type="text" id="stk_facture" placeholder="N° facture" style="width:100%;padding:6px;border:1px solid #999;border-radius:4px;"></div>
+      <div><label style="font-size:.75rem;font-weight:600;display:block;margin-bottom:2px;">Quantité (kg)</label><input type="number" step="0.01" min="0" id="stk_qty" style="width:100%;padding:6px;border:1px solid #999;border-radius:4px;"></div>
+      <div><label style="font-size:.75rem;font-weight:600;display:block;margin-bottom:2px;">Prix achat total (€)</label><input type="number" step="0.01" min="0" id="stk_prix" placeholder="Entrée seulement" style="width:100%;padding:6px;border:1px solid #999;border-radius:4px;"></div>
+      <div><button onclick="stkAddRow('entree')" style="width:100%;padding:8px;background:#2e7d32;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">+ Entrée</button></div>
+      <div><button onclick="stkAddRow('sortie')" style="width:100%;padding:8px;background:#c62828;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;">− Sortie</button></div>
     </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr>
-        <th>Date</th><th style="color:#a8e6a3">Entrées (kg)</th><th style="color:#f5b7b1">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Facture</th><th>N° Facture</th><th>Nom FRS</th><th>✕</th>
-      </tr></thead>
-      <tbody id="tbody"></tbody>
+    <div style="overflow-x:auto;margin-bottom:24px;">
+    <table id="stkMainTable" style="width:100%;border-collapse:collapse;font-size:.85rem;">
+      <thead><tr id="stkTableHead"></tr></thead>
+      <tbody id="stkTbody"></tbody>
     </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour btn-retour-vert" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
+    </div>
+    <h3 style="margin-top:8px;">CMUP — Coût Moyen Unitaire Pondéré</h3>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+      <thead>
+        <tr>
+          <th rowspan="2" style="background:#B8863B;border:1px solid #ccc;padding:6px;">Date entrée</th>
+          <th colspan="4" style="background:#B8863B;border:1px solid #ccc;padding:6px;">ENTRÉES</th>
+          <th rowspan="2" style="background:#B8863B;border:1px solid #ccc;padding:6px;">Date sortie</th>
+          <th colspan="3" style="background:#B8863B;border:1px solid #ccc;padding:6px;">SORTIES</th>
+        </tr>
+        <tr>
+          <th style="background:#B8863B;border:1px solid #ccc;padding:6px;">Poids (E)</th>
+          <th style="background:#B8863B;border:1px solid #ccc;padding:6px;">Poids total</th>
+          <th style="background:#B8863B;border:1px solid #ccc;padding:6px;">Prix/kg</th>
+          <th style="background:#B8863B;border:1px solid #ccc;padding:6px;">Prix total</th>
+          <th style="background:#B8863B;border:1px solid #ccc;padding:6px;">Poids sortie</th>
+          <th style="background:#B8863B;border:1px solid #ccc;padding:6px;">Prix moyen/kg</th>
+          <th style="background:#B8863B;border:1px solid #ccc;padding:6px;">Prix total sortie</th>
+        </tr>
+      </thead>
+      <tbody id="stkTbodyCmup"></tbody>
+    </table>
+    </div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
 
 <script>
 /* ══ CONFIGURATION NOMBRE DE BACS ══ */
@@ -1164,6 +1167,7 @@ function showPage(id) {
   if (id === 'page-oeufs') { ponteSyncFromCloud().then(function(){ initOeufsPage(); }); }
   if (id === 'page-nymphes') { nymSyncFromCloud().then(function(){ initNymphesPage(); }); }
   if (id === 'page-larves') { larSyncFromCloud().then(function(){ initLarvesPage(); }); }
+  if (id === 'page-stocks') { initStocksPage(); }
 }
 
 
@@ -4018,107 +4022,160 @@ async function exporterEnPDF(pageId, filename){
   }
 }
 
-</script>
 
-<!-- LÉGUMES -->
-<div id="page-leg" class="page">
-  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">🥦 Stock Légumes</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-leg', 'legumes.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="legMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportLegumes()">📥 Télécharger CSV</button></div>
-  <div id="leg-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ <span id="leg-alertSeuil"></span> kg !</div>
-  <div style="max-width:980px;margin:0 auto 18px auto;display:flex;align-items:center;gap:10px;font-size:.82rem;color:#555;">
-    <label style="font-weight:700;text-transform:uppercase;">Seuil d'alerte (kg) :</label>
-    <input type="number" id="leg-seuilInput" min="0.01" step="0.01" value="5" style="width:80px;padding:5px 8px;border:1.5px solid #bfc9d1;border-radius:6px;font-size:.9rem;">
-  </div>
-  <div class="form-section" style="border-top:3px solid #276b3a;">
-    <h2 style="color:#276b3a;">➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="leg-inDate"></div>
-      <div class="form-group"><label>Légume</label><input type="text" id="leg-inLegume" placeholder="Carotte, Blette…"></div>
-      <div class="form-group"><label>Type</label><select id="leg-inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="leg-inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Lot / Facture</label><input type="text" id="leg-inFac" placeholder="LOT-001"></div>
-      <div class="form-group"><label>Fournisseur</label><input type="text" id="leg-inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="leg-btnAdd" style="background:#276b3a;">✔ Ajouter</button></div>
-    </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr style="background:#276b3a;">
-        <th>Date</th><th>Légume</th><th style="color:#a8e6a3;">Entrées (kg)</th><th style="color:#f5b7b1;">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Lot</th><th>N° Lot</th><th>Fournisseur</th><th>✕</th>
-      </tr></thead>
-      <tbody id="leg-tbody"></tbody>
-    </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour" style="background:#f5b87a;color:#7a3000;" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
-  </div>
-</div>
+/* ══ GESTION DES STOCKS CONSOLIDÉS ══ */
+const STK_STOCKS = {
+  son_de_ble:         { label:'Son de blé',          color:'#B8863B', seuil:20 },
+  levure:             { label:'Levure',               color:'#C9A400', seuil:5  },
+  farine_poids_casse: { label:'Farine / Poids cassé', color:'#7A7266', seuil:5  },
+  legumes:            { label:'Légumes',              color:'#3F8F52', seuil:20 }
+};
+let stkCurrentStock = 'son_de_ble';
 
-<!-- LEVURE -->
-<div id="page-lev" class="page">
-  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">🫙 Stock Levure</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-lev', 'levure.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="levMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportLevure()">📥 Télécharger CSV</button></div>
-  <div id="lev-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ 5 kg ! Veuillez commander de la levure.</div>
-  <div class="form-section" style="border-top:3px solid #d4a855;">
-    <h2 style="color:#5a3a00;">➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="lev-inDate"></div>
-      <div class="form-group"><label>Type</label><select id="lev-inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="lev-inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Facture</label><input type="text" id="lev-inFac" placeholder="FAC-2026-001"></div>
-      <div class="form-group"><label>Nom FRS</label><input type="text" id="lev-inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="lev-btnAdd" style="background:#d4a855;color:#5a3a00;">✔ Ajouter</button></div>
-    </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr style="background:#d4a855;color:#5a3a00;">
-        <th>Date</th><th style="color:#2a5a1a;">Entrées (kg)</th><th style="color:#c0392b;">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Facture</th><th>N° Facture</th><th>Nom FRS</th><th>✕</th>
-      </tr></thead>
-      <tbody id="lev-tbody"></tbody>
-    </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour" style="background:#d4a855;color:#5a3a00;" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
-  </div>
-</div>
+function stkStorageKey(s){ return 'stockdata_' + s; }
+function stkLoadRows(s){ try{ const r=localStorage.getItem(stkStorageKey(s)); return r?JSON.parse(r):[]; }catch(e){ return []; } }
+function stkSaveRows(s, rows){ localStorage.setItem(stkStorageKey(s), JSON.stringify(rows)); fbSafeSave(stkStorageKey(s), rows); }
 
-<!-- POIDS CASSÉ -->
-<div id="page-poids" class="page">
-  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">⚖️ Stock Poids Cassé</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-poids', 'poids_casse.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="poidsMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportPoidsCasse()">📥 Télécharger CSV</button></div>
-  <div id="poids-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ 5 kg ! Veuillez commander du poids cassé.</div>
-  <div class="form-section" style="border-top:3px solid #1a5a54;">
-    <h2 style="color:#1a5a54;">➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="poids-inDate"></div>
-      <div class="form-group"><label>Type</label><select id="poids-inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="poids-inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Facture</label><input type="text" id="poids-inFac" placeholder="FAC-2026-001"></div>
-      <div class="form-group"><label>Nom FRS</label><input type="text" id="poids-inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="poids-btnAdd" style="background:#1a5a54;color:#fff;">✔ Ajouter</button></div>
-    </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr style="background:#1a5a54;color:#fff;">
-        <th>Date</th><th style="color:#a8e6a3;">Entrées (kg)</th><th style="color:#f5b7b1;">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Facture</th><th>N° Facture</th><th>Nom FRS</th><th>✕</th>
-      </tr></thead>
-      <tbody id="poids-tbody"></tbody>
-    </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour" style="background:#a8d8d0;color:#1a5a54;" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
-  </div>
-</div>
+function stkSetStockUI(stock){
+  stkCurrentStock = stock;
+  const cfg = STK_STOCKS[stock];
+  const accent = cfg.color;
+  // Mettre à jour la couleur de la barre header
+  const headerBar = document.querySelector('#page-stocks > div:nth-child(3)');
+  if(headerBar) headerBar.style.background = accent;
+  const panel = document.querySelector('#page-stocks > div:nth-child(4)');
+  if(panel){ panel.style.borderColor = accent; }
+  const title = document.getElementById('stkPanelTitle');
+  if(title){ title.textContent = cfg.label; title.style.borderBottomColor = accent; }
+  // Mettre à jour les en-têtes du tableau
+  const head = document.getElementById('stkTableHead');
+  if(head) head.innerHTML = ['Date','Fournisseur','N° facture','Qté entrée','Total entrées','Qté sortie','Total sorties','Stock dispo',''].map(h=>`<th style="background:${accent};border:1px solid #ccc;padding:6px 8px;">${h}</th>`).join('');
+  stkRender();
+}
 
-<!-- COLÉOPTÈRES -->
+function stkAddRow(type){
+  const date = document.getElementById('stk_date').value;
+  const qty  = parseFloat(document.getElementById('stk_qty').value);
+  const prix = document.getElementById('stk_prix').value;
+  if(!date || isNaN(qty) || qty<=0){ alert('Merci de renseigner une date et une quantité valide.'); return; }
+  const row = {
+    id: Date.now() + Math.random(),
+    type, date,
+    fournisseur: type==='entree' ? document.getElementById('stk_fournisseur').value : '',
+    facture:     type==='entree' ? document.getElementById('stk_facture').value : '',
+    qty,
+    prix: type==='entree' ? (parseFloat(prix)||0) : 0
+  };
+  const rows = stkLoadRows(stkCurrentStock);
+  rows.push(row);
+  rows.sort((a,b)=>a.date.localeCompare(b.date));
+  stkSaveRows(stkCurrentStock, rows);
+  document.getElementById('stk_fournisseur').value='';
+  document.getElementById('stk_facture').value='';
+  document.getElementById('stk_qty').value='';
+  document.getElementById('stk_prix').value='';
+  stkRender();
+}
+
+function stkDeleteRow(id){
+  let rows = stkLoadRows(stkCurrentStock).filter(r=>r.id!==id);
+  stkSaveRows(stkCurrentStock, rows);
+  stkRender();
+}
+
+function stkClearStock(){
+  if(!confirm('Effacer toutes les données de ce stock ?')) return;
+  if(!confirm('Confirmation finale ?')) return;
+  stkSaveRows(stkCurrentStock, []);
+  stkRender();
+}
+
+function stkFmtDate(iso){ const[y,m,d]=iso.split('-'); return d+'/'+m+'/'+y; }
+
+function stkRender(){
+  const rows = stkLoadRows(stkCurrentStock);
+  const tbody = document.getElementById('stkTbody');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:16px;color:#777;">Aucune donnée pour ce stock</td></tr>';
+    stkUpdateAlert(0); stkRenderCmup([]); return;
+  }
+  const batches=[], epuiseIds=new Set();
+  let tE=0, tS=0;
+  rows.forEach(r=>{
+    if(r.type==='entree'){ tE+=r.qty; batches.push({rowId:r.id,remaining:r.qty}); }
+    else {
+      let tc=r.qty; tS+=r.qty;
+      for(const b of batches){ if(tc<=0)break; if(b.remaining<=0)continue; const take=Math.min(b.remaining,tc); b.remaining-=take; tc-=take; if(b.remaining<=0.0001) epuiseIds.add(b.rowId); }
+    }
+  });
+  let rE=0, rS=0;
+  const accent = STK_STOCKS[stkCurrentStock].color;
+  rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.className=r.type;
+    if(r.type==='entree'&&epuiseIds.has(r.id)) tr.style.cssText='background:#eee;color:#777;text-decoration:line-through;';
+    if(r.type==='entree') rE+=r.qty; else rS+=r.qty;
+    const diff=rE-rS;
+    tr.innerHTML=`<td style="border:1px solid #ccc;padding:6px 8px;">${stkFmtDate(r.date)}</td><td style="border:1px solid #ccc;padding:6px 8px;">${r.type==='entree'?(r.fournisseur||'—'):''}</td><td style="border:1px solid #ccc;padding:6px 8px;">${r.type==='entree'?(r.facture||'—'):''}</td><td style="border:1px solid #ccc;padding:6px 8px;font-weight:700;color:#1b5e20;">${r.type==='entree'?r.qty.toFixed(2):''}</td><td style="border:1px solid #ccc;padding:6px 8px;">${rE.toFixed(2)}</td><td style="border:1px solid #ccc;padding:6px 8px;font-weight:700;color:#b71c1c;">${r.type==='sortie'?r.qty.toFixed(2):''}</td><td style="border:1px solid #ccc;padding:6px 8px;">${rS.toFixed(2)}</td><td style="border:1px solid #ccc;padding:6px 8px;font-weight:700;color:${diff<0?'#b71c1c':'#000'};">${diff.toFixed(2)}</td><td style="border:1px solid #ccc;padding:6px 8px;"><button style="background:#555;color:#fff;padding:3px 8px;font-size:.75rem;border-radius:4px;border:none;cursor:pointer;" onclick="stkDeleteRow(${r.id})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+  stkUpdateAlert(rE-rS);
+  stkRenderCmup(rows);
+}
+
+function stkRenderCmup(rows){
+  const tbody=document.getElementById('stkTbodyCmup'); if(!tbody) return;
+  tbody.innerHTML='';
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:16px;color:#777;">Aucune donnée</td></tr>'; return; }
+  let ptE=0, prixT=0;
+  rows.forEach(r=>{
+    const tr=document.createElement('tr'); tr.className=r.type;
+    if(r.type==='entree'){
+      ptE+=r.qty; prixT+=(r.prix||0);
+      const pk=ptE>0?(prixT/ptE):0;
+      tr.innerHTML=`<td style="border:1px solid #ccc;padding:6px;">${stkFmtDate(r.date)}</td><td style="border:1px solid #ccc;padding:6px;color:#1b5e20;font-weight:700;">${r.qty.toFixed(2)}</td><td style="border:1px solid #ccc;padding:6px;">${ptE.toFixed(2)}</td><td style="border:1px solid #ccc;padding:6px;">${pk.toFixed(3)} €</td><td style="border:1px solid #ccc;padding:6px;">${prixT.toFixed(2)} €</td><td style="border:1px solid #ccc;padding:6px;"></td><td style="border:1px solid #ccc;padding:6px;"></td><td style="border:1px solid #ccc;padding:6px;"></td>`;
+    } else {
+      const pk=ptE>0?(prixT/ptE):0;
+      tr.innerHTML=`<td style="border:1px solid #ccc;padding:6px;"></td><td style="border:1px solid #ccc;padding:6px;"></td><td style="border:1px solid #ccc;padding:6px;"></td><td style="border:1px solid #ccc;padding:6px;"></td><td style="border:1px solid #ccc;padding:6px;">${stkFmtDate(r.date)}</td><td style="border:1px solid #ccc;padding:6px;color:#b71c1c;font-weight:700;">${r.qty.toFixed(2)}</td><td style="border:1px solid #ccc;padding:6px;">${pk.toFixed(3)} €</td><td style="border:1px solid #ccc;padding:6px;">${(r.qty*pk).toFixed(2)} €</td>`;
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+function stkUpdateAlert(stockFinal){
+  const banner=document.getElementById('stkAlertBanner'); if(!banner) return;
+  const seuil=STK_STOCKS[stkCurrentStock].seuil;
+  if(stockFinal<=seuil){ banner.textContent=`⚠️ Stock bas — ${stockFinal.toFixed(2)} kg restants (seuil : ${seuil} kg)`; banner.style.display='block'; }
+  else { banner.style.display='none'; }
+}
+
+function stkDownloadCSV(){
+  const rows=stkLoadRows(stkCurrentStock);
+  let csv="Date;Fournisseur;N° facture;Qté entrée;Total entrées;Qté sortie;Total sorties;Stock dispo\n";
+  let rE=0,rS=0;
+  rows.forEach(r=>{
+    if(r.type==='entree') rE+=r.qty; else rS+=r.qty;
+    csv+=[stkFmtDate(r.date),r.type==='entree'?(r.fournisseur||''):'',r.type==='entree'?(r.facture||''):'',r.type==='entree'?r.qty.toFixed(2):'',rE.toFixed(2),r.type==='sortie'?r.qty.toFixed(2):'',rS.toFixed(2),(rE-rS).toFixed(2)].join(';')+"\n";
+  });
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='stocks_'+stkCurrentStock+'_'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+function initStocksPage(){
+  if(!window._stkAttached){
+    window._stkAttached=true;
+    const sel=document.getElementById('stkSelect');
+    if(sel) sel.addEventListener('change',function(e){ stkSetStockUI(e.target.value); });
+  }
+  const dateEl=document.getElementById('stk_date');
+  if(dateEl&&!dateEl.value) dateEl.valueAsDate=new Date();
+  stkSetStockUI(stkCurrentStock);
+}
+
+</script><!-- COLÉOPTÈRES -->
 <div id="page-col" class="page">
   <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
   <div class="sim-date-bar" id="simBarCol">
