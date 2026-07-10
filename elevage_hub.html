@@ -3319,7 +3319,12 @@ function larRender(){
       return '<td class="'+tdcls.trim()+'"><div class="lar-sc-cell">'+dateLbl+poidsHtml+'</div></td>';
     }).join('');
 
-    rows+='<tr><td class="lar-tdt"><div class="lar-dtv">'+larFr(entry)+'</div>'+jbg+'</td>'+
+    // Afficher le dernier travail effectué sur ce bac
+    const dernierTrav = (row.travaux && row.travaux.length > 0) ? row.travaux[row.travaux.length-1] : null;
+    const travBadge = dernierTrav
+      ? '<div style="font-size:.6rem;color:#3a7d44;font-weight:700;margin-top:3px;background:#e3f2e5;border-radius:4px;padding:2px 5px;">🔧 '+dernierTrav.type+' '+larTravFmtDate(dernierTrav.date)+'</div>'
+      : '';
+    rows+='<tr><td class="lar-tdt"><div class="lar-dtv">'+larFr(entry)+'</div>'+jbg+travBadge+'</td>'+
       '<td class="lar-tdb" style="vertical-align:middle;">'+(row.bac||'—')+'</td>'+
       cells+
       '<td style="vertical-align:middle;"><div class="lar-btn-row"><button class="lar-bic" data-edit="'+i+'">✏️</button><button class="lar-bic" data-del="'+i+'">✕</button></div></td></tr>';
@@ -3470,6 +3475,14 @@ function larShowToast(msg){
 function larAttacherEvenements(){
   if(window._larEventsAttached) return;
   window._larEventsAttached=true;
+  document.getElementById('larBtnTravaux').addEventListener('click', larTravauxOuvrir);
+  // Listener radio travail pour afficher/masquer les champs poids
+  document.querySelectorAll('input[name="larTravailType"]').forEach(function(radio){
+    radio.addEventListener('change', function(){
+      document.getElementById('larTravailSubstratWrap').style.display = (this.value === 'substrat') ? 'block' : 'none';
+      document.getElementById('larTravailLegumesWrap').style.display  = (this.value === 'legumes')  ? 'block' : 'none';
+    });
+  });
   document.getElementById('larRechercheBac').addEventListener('input', larRender);
   document.getElementById('larRechercheDate').addEventListener('change', larRender);
   document.getElementById('larBtnEffacerRecherche').addEventListener('click', function(){
@@ -4175,6 +4188,196 @@ function initStocksPage(){
   stkSetStockUI(stkCurrentStock);
 }
 
+
+/* ══ TRAVAUX SUR LES BACS (page Vers) ══ */
+let larTravauxLignes = []; // liste des lignes du tableau de travail en cours
+
+function larTravauxOuvrir(){
+  const panel = document.getElementById('larTravauxPanel');
+  if(!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  if(panel.style.display === 'block'){
+    larTravauxResetEtapes();
+    larTravauxRemplirBacs();
+  }
+}
+
+function larTravauxResetEtapes(){
+  document.getElementById('larTravauxEtape1').style.display = 'block';
+  document.getElementById('larTravauxEtape2').style.display = 'none';
+  document.getElementById('larTravauxEtape3').style.display = 'none';
+  larTravauxLignes = [];
+}
+
+function larTravauxRemplirBacs(){
+  const sel = document.getElementById('larTravauxBacSelect');
+  if(!sel) return;
+  sel.innerHTML = '';
+  larData.forEach(function(r){
+    const opt = document.createElement('option');
+    opt.value = r.bac;
+    const dernierTravail = r.travaux && r.travaux.length > 0 ? ' — dernier: '+r.travaux[r.travaux.length-1].type+' ('+larTravFmtDate(r.travaux[r.travaux.length-1].date)+')' : '';
+    opt.textContent = 'Bac n°' + r.bac + ' — entré le ' + (r.dateEntree ? larTravFmtDate(r.dateEntree) : '?') + dernierTravail;
+    sel.appendChild(opt);
+  });
+}
+
+function larTravauxEtape2(){
+  const sel = document.getElementById('larTravauxBacSelect');
+  const bacsChoisis = Array.from(sel.selectedOptions).map(o => o.value);
+  if(bacsChoisis.length === 0){ larShowToast('Veuillez sélectionner au moins un bac.'); return; }
+  
+  // Afficher les bacs choisis
+  const info = document.getElementById('larTravauxBacsChoisis');
+  info.innerHTML = '<strong>Bacs sélectionnés :</strong> ' + bacsChoisis.map(b => 'Bac n°'+b).join(', ');
+  
+  // Réinitialiser les champs
+  document.querySelectorAll('input[name="larTravailType"]').forEach(r => r.checked = false);
+  document.getElementById('larTravailSubstratPoids').value = '';
+  document.getElementById('larTravailLegumesPoids').value = '';
+  document.getElementById('larTravailSubstratWrap').style.display = 'none';
+  document.getElementById('larTravailLegumesWrap').style.display = 'none';
+  
+  document.getElementById('larTravauxEtape1').style.display = 'none';
+  document.getElementById('larTravauxEtape2').style.display = 'block';
+}
+
+function larTravauxRetourEtape1(){
+  document.getElementById('larTravauxEtape1').style.display = 'block';
+  document.getElementById('larTravauxEtape2').style.display = 'none';
+}
+function larTravauxRetourEtape2(){
+  document.getElementById('larTravauxEtape2').style.display = 'block';
+  document.getElementById('larTravauxEtape3').style.display = 'none';
+}
+
+function larTravauxCreerTableau(){
+  const sel = document.getElementById('larTravauxBacSelect');
+  const bacsChoisis = Array.from(sel.selectedOptions).map(o => o.value);
+  const typeRadio = document.querySelector('input[name="larTravailType"]:checked');
+  if(!typeRadio){ larShowToast('Veuillez choisir un type de travail.'); return; }
+  
+  const type = typeRadio.value;
+  let poids = null;
+  if(type === 'substrat'){
+    poids = parseFloat(document.getElementById('larTravailSubstratPoids').value);
+    if(isNaN(poids) || poids <= 0){ larShowToast('Veuillez indiquer le poids du substrat.'); return; }
+  }
+  if(type === 'legumes'){
+    poids = parseFloat(document.getElementById('larTravailLegumesPoids').value);
+    if(isNaN(poids) || poids <= 0){ larShowToast('Veuillez indiquer le poids des légumes.'); return; }
+  }
+  
+  const labels = { tamiser:'🔲 Tamiser + peser', substrat:'🌾 Substrat', legumes:'🥦 Légumes', eau:'💧 Eau' };
+  
+  larTravauxLignes = bacsChoisis.map(function(bac){
+    return { bac: bac, type: type, label: labels[type], poids: poids, valide: false, id: Date.now()+'_'+bac };
+  });
+  
+  larTravauxRenderTableau();
+  document.getElementById('larTravauxEtape2').style.display = 'none';
+  document.getElementById('larTravauxEtape3').style.display = 'block';
+}
+
+function larTravauxRenderTableau(){
+  const container = document.getElementById('larTravauxTableauContainer');
+  if(!container) return;
+  
+  const couleurs = { tamiser:'#e8f4e8', substrat:'#fdf6e3', legumes:'#e8f4e8', eau:'#e8f0f8' };
+  const couleurBordure = { tamiser:'#3a7d44', substrat:'#c9a030', legumes:'#3a7d44', eau:'#3a7d44' };
+  
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:.85rem;">';
+  html += '<thead><tr style="background:#9a7818;color:#fff;">';
+  html += '<th style="padding:10px 12px;text-align:left;">N° Bac</th>';
+  html += '<th style="padding:10px 12px;text-align:left;">Travail à faire</th>';
+  html += '<th style="padding:10px 12px;text-align:center;">Poids</th>';
+  html += '<th style="padding:10px 12px;text-align:center;">✓ Fait</th>';
+  html += '<th style="padding:10px 12px;text-align:center;">Supprimer</th>';
+  html += '</tr></thead><tbody>';
+  
+  larTravauxLignes.forEach(function(ligne, i){
+    const bg = i % 2 === 0 ? '#ffffff' : '#fbf8ef';
+    const borderLeft = '4px solid ' + (couleurBordure[ligne.type] || '#c9a030');
+    html += '<tr style="background:' + bg + ';border-left:' + borderLeft + ';" id="larTravRow_'+i+'">';
+    html += '<td style="padding:10px 12px;font-family:monospace;font-weight:700;color:#9a7818;">Bac n°' + ligne.bac + '</td>';
+    html += '<td style="padding:10px 12px;font-weight:600;">' + ligne.label + '</td>';
+    html += '<td style="padding:10px 12px;text-align:center;">' + (ligne.poids ? ligne.poids + ' kg' : '—') + '</td>';
+    html += '<td style="padding:10px 12px;text-align:center;">';
+    html += '<input type="checkbox" id="larTravCheck_'+i+'" style="width:22px;height:22px;accent-color:#3a7d44;cursor:pointer;" ' + (ligne.valide ? 'checked' : '') + ' onchange="larTravauxToggleValide('+i+', this.checked)">';
+    html += '</td>';
+    html += '<td style="padding:10px 12px;text-align:center;">';
+    html += '<button onclick="larTravauxSupprimerLigne('+i+')" style="background:#b84030;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-weight:700;cursor:pointer;">✕</button>';
+    html += '</td></tr>';
+  });
+  
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  
+  // Afficher le nombre de lignes restantes
+  const nb = larTravauxLignes.length;
+  const nbValides = larTravauxLignes.filter(l => l.valide).length;
+  container.innerHTML += '<div style="text-align:right;font-size:.8rem;color:#6b6b6b;margin-top:6px;">' + nbValides + ' / ' + nb + ' travaux cochés</div>';
+}
+
+function larTravauxToggleValide(i, checked){
+  if(larTravauxLignes[i]) larTravauxLignes[i].valide = checked;
+  // Mettre à jour le compteur sans re-render complet (pour garder les cases cochées)
+  const nb = larTravauxLignes.length;
+  const nbValides = larTravauxLignes.filter(l => l.valide).length;
+  const container = document.getElementById('larTravauxTableauContainer');
+  const countDiv = container.querySelector('div');
+  if(countDiv) countDiv.textContent = nbValides + ' / ' + nb + ' travaux cochés';
+}
+
+function larTravauxSupprimerLigne(i){
+  larTravauxLignes.splice(i, 1);
+  if(larTravauxLignes.length === 0){
+    larShowToast('Plus aucun bac dans le tableau. Recommencez.');
+    larTravauxResetEtapes();
+    return;
+  }
+  larTravauxRenderTableau();
+}
+
+function larTravauxValiderTout(){
+  const nonValides = larTravauxLignes.filter(l => !l.valide);
+  if(nonValides.length > 0){
+    if(!confirm(nonValides.length + ' bac(s) non cochés. Valider quand même tous les travaux ?')) return;
+  }
+  if(!confirm('Confirmer l\'enregistrement de tous les travaux dans le tableau des Vers ?')) return;
+  
+  const today = larSimS();
+  const labels = { tamiser:'Tamiser+peser', substrat:'Substrat', legumes:'Légumes', eau:'Eau' };
+  
+  larTravauxLignes.forEach(function(ligne){
+    const row = larData.find(r => String(r.bac) === String(ligne.bac));
+    if(!row) return;
+    if(!row.travaux) row.travaux = [];
+    row.travaux.push({
+      date: today,
+      type: labels[ligne.type] || ligne.type,
+      poids: ligne.poids || null
+    });
+    // Enregistrer la date du dernier travail
+    row.dateDernierTravail = today;
+  });
+  
+  larSave();
+  larRender();
+  
+  // Fermer le panneau
+  document.getElementById('larTravauxPanel').style.display = 'none';
+  larTravauxLignes = [];
+  larShowToast('✅ ' + larTravauxLignes.length + ' travaux enregistrés dans le tableau des Vers !');
+  larShowToast('✅ Travaux enregistrés !');
+}
+
+function larTravFmtDate(iso){
+  if(!iso) return '—';
+  const p = iso.split('-');
+  return p[2]+'/'+p[1]+'/'+p[0];
+}
+
 </script><!-- COLÉOPTÈRES -->
 <div id="page-col" class="page">
   <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
@@ -4647,6 +4850,89 @@ function initStocksPage(){
     <input type="date" id="larRechercheDate" style="width:100%;border:1.5px solid var(--lborder);border-radius:8px;padding:8px 10px;font-size:.88rem;">
   </div>
   <button class="lar-btn-sec" id="larBtnEffacerRecherche" style="height:38px;">✕ Effacer</button>
+</div>
+
+<!-- BOUTON TRAVAUX -->
+<div style="margin-bottom:14px;">
+  <button id="larBtnTravaux" style="background:var(--lor,#c9a030);color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:.92rem;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:10px;">
+    🔧 Travaux sur les bacs
+  </button>
+</div>
+
+<!-- PANNEAU TRAVAUX (caché par défaut) -->
+<div id="larTravauxPanel" style="display:none;background:#fbf8ef;border:2px solid var(--lor,#c9a030);border-radius:14px;padding:18px;margin-bottom:18px;">
+
+  <!-- ÉTAPE 1 : Sélection des bacs -->
+  <div id="larTravauxEtape1">
+    <div style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9a7818;margin-bottom:10px;">Étape 1 — Quels bacs ?</div>
+    <div style="margin-bottom:12px;">
+      <label style="display:block;font-size:.78rem;font-weight:700;color:#6b6b6b;margin-bottom:6px;">Sélectionner un ou plusieurs bacs</label>
+      <select id="larTravauxBacSelect" multiple style="width:100%;min-height:120px;border:1.5px solid #c9a030;border-radius:8px;padding:6px;font-family:'IBM Plex Mono',monospace;font-size:.88rem;background:#fff;"></select>
+      <div style="font-size:.7rem;color:#6b6b6b;margin-top:4px;">Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs bacs</div>
+    </div>
+    <button onclick="larTravauxEtape2()" style="background:#9a7818;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-weight:700;cursor:pointer;width:100%;">
+      Suivant → Choisir le travail
+    </button>
+  </div>
+
+  <!-- ÉTAPE 2 : Choix du travail -->
+  <div id="larTravauxEtape2" style="display:none;">
+    <div style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9a7818;margin-bottom:10px;">Étape 2 — Quel travail ?</div>
+    <div id="larTravauxBacsChoisis" style="background:#f5e9c8;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.85rem;"></div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1.5px solid #ddd2b0;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="larTravailType" value="tamiser" style="width:18px;height:18px;accent-color:#9a7818;">
+        <span>🔲 <strong>Tamiser + peser</strong></span>
+      </label>
+
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1.5px solid #ddd2b0;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="larTravailType" value="substrat" style="width:18px;height:18px;accent-color:#9a7818;">
+        <div style="flex:1;">
+          <span>🌾 <strong>Donner du Substrat</strong></span>
+          <div id="larTravailSubstratWrap" style="display:none;margin-top:8px;">
+            <input type="number" id="larTravailSubstratPoids" placeholder="Poids (kg)" step="0.01" min="0" style="width:100%;padding:8px;border:1.5px solid #c9a030;border-radius:6px;font-size:.9rem;">
+          </div>
+        </div>
+      </label>
+
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1.5px solid #ddd2b0;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="larTravailType" value="legumes" style="width:18px;height:18px;accent-color:#9a7818;">
+        <div style="flex:1;">
+          <span>🥦 <strong>Donner des Légumes</strong></span>
+          <div id="larTravailLegumesWrap" style="display:none;margin-top:8px;">
+            <input type="number" id="larTravailLegumesPoids" placeholder="Poids (kg)" step="0.01" min="0" style="width:100%;padding:8px;border:1.5px solid #c9a030;border-radius:6px;font-size:.9rem;">
+          </div>
+        </div>
+      </label>
+
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1.5px solid #ddd2b0;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="larTravailType" value="eau" style="width:18px;height:18px;accent-color:#9a7818;">
+        <span>💧 <strong>Donner de l'eau</strong></span>
+      </label>
+
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button onclick="larTravauxRetourEtape1()" style="flex:1;background:#e8e4d8;color:#1a1a1a;border:none;border-radius:8px;padding:10px;font-weight:700;cursor:pointer;">← Retour</button>
+      <button onclick="larTravauxCreerTableau()" style="flex:2;background:#3a7d44;color:#fff;border:none;border-radius:8px;padding:10px;font-weight:700;cursor:pointer;">Créer le tableau de travail →</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 : Tableau de travail à valider -->
+  <div id="larTravauxEtape3" style="display:none;">
+    <div style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9a7818;margin-bottom:10px;">Étape 3 — Tableau de travail</div>
+    <div id="larTravauxTableauContainer" style="overflow-x:auto;margin-bottom:16px;"></div>
+    <div style="background:#e3f2e5;border:1.5px solid #3a7d44;border-radius:10px;padding:12px;margin-bottom:14px;font-size:.85rem;color:#1a3a20;">
+      📋 Le technicien effectue les travaux, puis valide chaque bac ci-dessus, puis clique sur le bouton de validation global.
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="larTravauxRetourEtape2()" style="flex:1;background:#e8e4d8;color:#1a1a1a;border:none;border-radius:8px;padding:10px;font-weight:700;cursor:pointer;">← Modifier</button>
+      <button onclick="larTravauxValiderTout()" style="flex:2;background:#3a7d44;color:#fff;border:none;border-radius:8px;padding:12px;font-weight:700;cursor:pointer;font-size:.95rem;">✅ Valider et enregistrer tous les travaux</button>
+    </div>
+  </div>
+
 </div>
 
 <div class="lar-tw">
