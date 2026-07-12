@@ -135,6 +135,21 @@
     .btn-son{background:#b8d8a0;color:#2a5a1a;}
     .btn-levure{background:#d4a855;color:#5a3a00;}
     .btn-legumes{background:#f5b87a;color:#7a3000;}
+    .btn-stocks{background:#0066ff;color:#000;}
+    #page-stocks .form-group input[readonly]{background:#f0f4f8;cursor:pointer;color:#0047AB;font-weight:700;}
+    .stk-numpad-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9500;align-items:center;justify-content:center;}
+    .stk-numpad-overlay.open{display:flex;}
+    .stk-numpad-box{background:#fff;border-radius:14px;padding:20px;box-shadow:0 8px 40px rgba(0,0,0,.35);min-width:240px;}
+    .stk-numpad-title{font-family:'Lato',sans-serif;font-weight:700;font-size:.85rem;color:#374151;margin-bottom:10px;text-align:center;}
+    .stk-numpad-display{font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:700;color:#0047AB;background:#f9fafb;border:2px solid #e5e7eb;border-radius:8px;padding:8px 14px;text-align:right;margin-bottom:12px;min-height:46px;}
+    .stk-numpad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+    .stk-numpad-grid button{padding:13px;font-size:1.1rem;font-weight:700;border:1px solid #e5e7eb;border-radius:8px;background:#f3f4f6;cursor:pointer;font-family:'IBM Plex Mono',monospace;}
+    .stk-numpad-grid button:hover{background:#e5e7eb;}
+    .stk-numpad-actions{display:flex;gap:8px;margin-top:10px;}
+    .stk-numpad-actions button{flex:1;padding:10px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:'Lato',sans-serif;}
+    .stk-btn-annuler{background:#e5e7eb;color:#333;}
+    .stk-btn-ok{background:#16a34a;color:#fff;}
+    .stk-btn-del{background:#fee2e2;color:#dc2626;border-color:#fca5a5;}
 
     /* RETOUR */
     .btn-retour{display:inline-block;padding:11px 38px;border-radius:8px;font-size:1rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;border:none;cursor:pointer;margin-top:20px;}
@@ -807,41 +822,303 @@
       <svg width="26" height="28" viewBox="0 0 32 34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="16" cy="19" rx="6" ry="11" transform="rotate(-8 16 19)"/><path d="M11 15 Q16 13 21 15"/><path d="M10 20 Q16 18 22 20"/><path d="M11 25 Q16 23 21 25"/><path d="M13 8 Q14 6 16 7 Q18 6 19 8"/></svg>
       Nymphes
     </button>
-    <button class="btn btn-son" onclick="showPage('page-son')">
-      <svg width="28" height="30" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="32" x2="17" y2="11"/><ellipse cx="17" cy="8" rx="3.2" ry="6"/><ellipse cx="11" cy="13" rx="2.5" ry="4.5" transform="rotate(-22 11 13)"/><ellipse cx="10" cy="21" rx="2.5" ry="4.5" transform="rotate(-16 10 21)"/><ellipse cx="23" cy="13" rx="2.5" ry="4.5" transform="rotate(22 23 13)"/><ellipse cx="24" cy="21" rx="2.5" ry="4.5" transform="rotate(16 24 21)"/><line x1="17" y1="3" x2="17" y2="1"/><path d="M14 4 Q12 2 11 1"/><path d="M20 4 Q22 2 23 1"/></svg>
-      Son de blé
-    </button>
-
-    <button class="btn btn-poids" onclick="showPage('page-poids')">
-      <svg width="28" height="28" viewBox="0 0 34 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <!-- sac de farine -->
-        <path d="M10 8 Q8 10 8 22 Q8 27 17 27 Q26 27 26 22 Q26 10 24 8 Z"/>
-        <!-- lien du sac -->
-        <path d="M12 8 Q17 5 22 8"/>
-        <line x1="17" y1="5" x2="17" y2="3"/>
-        <!-- texture farine (points) -->
-        <circle cx="13" cy="16" r="1"/>
-        <circle cx="17" cy="14" r="1"/>
-        <circle cx="21" cy="16" r="1"/>
-        <circle cx="15" cy="20" r="1"/>
-        <circle cx="19" cy="20" r="1"/>
-        <!-- nuage de farine -->
-        <path d="M6 10 Q4 8 5 6 Q7 4 9 6"/>
-        <path d="M28 10 Q30 8 29 6 Q27 4 25 6"/>
-      </svg>
-      Poids cassé
-    </button>
-
-    <button class="btn btn-levure" onclick="showPage('page-lev')">
-      <svg width="26" height="28" viewBox="0 0 32 34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="14" width="16" height="15" rx="3"/><rect x="6" y="10" width="20" height="5" rx="2"/><circle cx="13" cy="21" r="2.2"/><circle cx="20" cy="19" r="1.8"/><circle cx="17" cy="25" r="1.6"/><line x1="8" y1="17" x2="24" y2="17"/></svg>
-      Levure
-    </button>
-    <button class="btn btn-legumes" onclick="showPage('page-leg')">
-      <svg width="28" height="28" viewBox="0 0 34 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 Q22 10 21 16 Q20 22 17 26 Q14 22 13 16 Q12 10 14 6 Z"/><path d="M17 6 Q17 3 15 1"/><path d="M17 6 Q18 2 20 1"/><path d="M17 6 Q14 3 13 2"/><ellipse cx="8" cy="20" rx="5" ry="3" transform="rotate(-20 8 20)"/><path d="M10 15 Q11 12 12 13"/><circle cx="26" cy="21" r="4.5"/><path d="M26 16.5 Q26 14 27 13"/><path d="M26 16.5 Q24 14 23 13"/></svg>
-      Légumes
+    <button class="btn btn-stocks" onclick="showPage('page-stocks')">
+      <svg width="30" height="28" viewBox="0 0 36 34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 L18 4 L32 12 L18 20 Z"/><path d="M4 12 L4 26 L18 34 L18 20"/><path d="M32 12 L32 26 L18 34"/><line x1="4" y1="12" x2="18" y2="20"/></svg>
+      Stocks
     </button>
   </div>
 </div>
+
+<!-- STOCKS (module consolidé : Son de blé / Levure / Farine-Poids cassé / Légumes) -->
+<div id="page-stocks" class="page">
+  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
+  <h1>📦 Gestion des Stocks</h1>
+
+  <div style="max-width:1100px;margin:0 auto 16px auto;display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;">
+    <label for="stkSelect" style="font-weight:800;color:#1a5276;">Stock :</label>
+    <select id="stkSelect" onchange="stkSetType(this.value)" style="padding:8px 12px;border:1.5px solid #bfc9d1;border-radius:6px;font-size:.95rem;font-weight:700;">
+      <option value="son_de_ble">🌾 Son de blé</option>
+      <option value="levure">🫙 Levure</option>
+      <option value="farine">🥧 Farine / Poids cassé</option>
+      <option value="legumes">🥦 Légumes</option>
+    </select>
+  </div>
+
+  <div class="imprimer-bar" style="max-width:1100px;">
+    <button class="btn-imprimer" onclick="exporterEnPDF('page-stocks', 'stock.pdf')">📄 Enregistrer en PDF</button>
+    <button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button>
+    <button class="btn-mise-a-zero" style="margin-left:10px;" onclick="stkMiseAZero()">🔄 Mise à zéro</button>
+    <button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="stkExportCSV()">📥 Télécharger CSV</button>
+  </div>
+
+  <div id="stk-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:1100px;"></div>
+
+  <div class="form-section" style="max-width:1100px;">
+    <h2>➕ Nouvelle ligne</h2>
+    <div class="form-grid">
+      <div class="form-group"><label>Date</label><input type="date" id="stkInDate"></div>
+      <div class="form-group"><label>Fournisseur</label><input type="text" id="stkInFrs" placeholder="Fournisseur"></div>
+      <div class="form-group"><label>N° Facture</label><input type="text" id="stkInFac" placeholder="FAC-2026-001"></div>
+      <div class="form-group"><label>Quantité (kg)</label><input type="text" id="stkInQte" readonly placeholder="Cliquer..." onclick="stkOuvrirNumpad('stkInQte','Quantité (kg)')"></div>
+      <div class="form-group"><label>Prix d'achat (€)</label><input type="text" id="stkInPrix" readonly placeholder="Entrée uniquement" onclick="stkOuvrirNumpad('stkInPrix','Prix d\'achat (€)')"></div>
+      <div class="form-group"><button class="btn-add" style="background:#2a5a1a;" onclick="stkAddRow('entree')">✔ Entrée</button></div>
+      <div class="form-group"><button class="btn-add" style="background:#c0392b;" onclick="stkAddRow('sortie')">✔ Sortie</button></div>
+    </div>
+  </div>
+
+  <div class="table-wrapper" style="max-width:1100px;">
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Fournisseur</th><th>N° Facture</th>
+        <th style="color:#a8e6a3">Entrées (kg)</th><th>Total entrées</th>
+        <th style="color:#f5b7b1">Sorties (kg)</th><th>Total sorties</th>
+        <th>Stock dispo (kg)</th><th>✕</th>
+      </tr></thead>
+      <tbody id="stkTbody"></tbody>
+    </table>
+  </div>
+
+  <div class="table-wrapper" style="max-width:1100px;">
+    <table>
+      <caption style="text-align:left;padding:8px 4px;font-weight:800;color:#1a5276;">CMUP — Coût Moyen Unitaire Pondéré (PEPS)</caption>
+      <thead><tr>
+        <th rowspan="2">Date entrée</th><th colspan="4">ENTRÉES</th>
+        <th rowspan="2">Date sortie</th><th colspan="3">SORTIES</th>
+      </tr><tr>
+        <th>Poids</th><th>Poids cumulé</th><th>Prix/kg</th><th>Prix total</th>
+        <th>Poids sortie</th><th>Prix moyen/kg</th><th>Prix total</th>
+      </tr></thead>
+      <tbody id="stkTbodyCmup"></tbody>
+    </table>
+  </div>
+
+  <div class="page-footer">
+    <button class="btn-retour btn-retour-vert" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
+  </div>
+
+  <div class="stk-numpad-overlay" id="stkNumpadOverlay">
+    <div class="stk-numpad-box">
+      <div class="stk-numpad-title" id="stkNumpadTitle">Saisie</div>
+      <div class="stk-numpad-display" id="stkNumpadDisplay">_</div>
+      <div class="stk-numpad-grid">
+        <button onclick="stkNumpadTap('7')">7</button><button onclick="stkNumpadTap('8')">8</button><button onclick="stkNumpadTap('9')">9</button>
+        <button onclick="stkNumpadTap('4')">4</button><button onclick="stkNumpadTap('5')">5</button><button onclick="stkNumpadTap('6')">6</button>
+        <button onclick="stkNumpadTap('1')">1</button><button onclick="stkNumpadTap('2')">2</button><button onclick="stkNumpadTap('3')">3</button>
+        <button class="stk-btn-del" onclick="stkNumpadDel()">⌫</button><button onclick="stkNumpadTap('0')">0</button><button onclick="stkNumpadTap('.')">.</button>
+      </div>
+      <div class="stk-numpad-actions">
+        <button class="stk-btn-annuler" onclick="stkNumpadCancel()">Annuler</button>
+        <button class="stk-btn-ok" onclick="stkNumpadOk()">✔ Valider</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══ STOCKS — module consolidé (Son de blé / Levure / Farine-Poids cassé / Légumes) ══ */
+const STK_TYPES = {
+  son_de_ble: { label:"Son de blé",           seuil:20 },
+  levure:     { label:"Levure",               seuil:5  },
+  farine:     { label:"Farine / Poids cassé", seuil:5  },
+  legumes:    { label:"Légumes",              seuil:5  }
+};
+let stkCurrent = 'son_de_ble';
+
+function stkKey(type){ return 'stock_v2_' + type; }
+
+function stkLoad(type){
+  try { return JSON.parse(localStorage.getItem(stkKey(type))) || []; } catch(e){ return []; }
+}
+function stkSave(type, rows){
+  localStorage.setItem(stkKey(type), JSON.stringify(rows));
+  fbSafeSave(stkKey(type), rows);
+}
+async function stkSyncFromCloud(){
+  for (const type in STK_TYPES){
+    const cloudData = await fbSafeLoad(stkKey(type), null);
+    if (cloudData !== null) localStorage.setItem(stkKey(type), JSON.stringify(cloudData));
+  }
+}
+
+function stkSetType(type){
+  stkCurrent = type;
+  stkRender();
+}
+
+function stkAddRow(kind){
+  const dateEl = document.getElementById('stkInDate');
+  const date = dateEl.value;
+  const qte = parseFloat(document.getElementById('stkInQte').value);
+  if(!date || isNaN(qte) || qte<=0){ alert('Merci de renseigner une date et une quantité valide.'); return; }
+  const frs = document.getElementById('stkInFrs').value;
+  const fac = document.getElementById('stkInFac').value;
+  const prix = kind==='entree' ? (parseFloat(document.getElementById('stkInPrix').value)||0) : 0;
+  const rows = stkLoad(stkCurrent);
+  rows.push({ id: Date.now()+Math.random(), type: kind, date: date, frs: kind==='entree'?frs:'', fac: kind==='entree'?fac:'', qte: qte, prix: prix });
+  rows.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  stkSave(stkCurrent, rows);
+  document.getElementById('stkInFrs').value='';
+  document.getElementById('stkInFac').value='';
+  document.getElementById('stkInQte').value='';
+  document.getElementById('stkInPrix').value='';
+  stkRender();
+}
+
+function stkDeleteRow(id){
+  let rows = stkLoad(stkCurrent);
+  rows = rows.filter(function(r){ return r.id!==id; });
+  stkSave(stkCurrent, rows);
+  stkRender();
+}
+
+function stkMiseAZero(){
+  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du stock "'+STK_TYPES[stkCurrent].label+'". Action irréversible. Continuer ?')) return;
+  if(!confirm('Confirmation finale : vider ce tableau ?')) return;
+  stkSave(stkCurrent, []);
+  stkRender();
+}
+
+function stkFormatDate(iso){
+  if(!iso) return '—';
+  const p = iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0];
+}
+
+function stkRender(){
+  const rows = stkLoad(stkCurrent);
+  const tbody = document.getElementById('stkTbody');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  const sel = document.getElementById('stkSelect');
+  if(sel) sel.value = stkCurrent;
+
+  if(rows.length===0){
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#777;">Aucune donnée pour ce stock</td></tr>';
+    const abEmpty = document.getElementById('stk-alertBox');
+    if(abEmpty) abEmpty.style.display='none';
+    stkRenderCmup(rows);
+    return;
+  }
+
+  /* File PEPS (premier entré, premier sorti) pour repérer les lots épuisés */
+  const batches=[]; const epuiseIds=new Set();
+  rows.forEach(function(r){
+    if(r.type==='entree'){ batches.push({id:r.id, remaining:r.qte}); }
+    else{
+      let toConsume=r.qte;
+      for(const b of batches){
+        if(toConsume<=0) break;
+        if(b.remaining<=0) continue;
+        const take=Math.min(b.remaining, toConsume);
+        b.remaining-=take; toConsume-=take;
+        if(b.remaining<=0.0001) epuiseIds.add(b.id);
+      }
+    }
+  });
+
+  let runE=0, runS=0;
+  rows.forEach(function(r){
+    if(r.type==='entree') runE+=r.qte; else runS+=r.qte;
+    const diff = runE-runS;
+    const tr=document.createElement('tr');
+    if(r.type==='entree' && epuiseIds.has(r.id)) tr.style.opacity='0.5';
+    tr.innerHTML =
+      '<td>'+stkFormatDate(r.date)+'</td>'+
+      '<td>'+(r.type==='entree'?(r.frs||'—'):'')+'</td>'+
+      '<td>'+(r.type==='entree'?(r.fac||'—'):'')+'</td>'+
+      '<td style="color:#2a5a1a;font-weight:700;">'+(r.type==='entree'?r.qte.toFixed(2):'')+'</td>'+
+      '<td>'+runE.toFixed(2)+'</td>'+
+      '<td style="color:#c0392b;font-weight:700;">'+(r.type==='sortie'?r.qte.toFixed(2):'')+'</td>'+
+      '<td>'+runS.toFixed(2)+'</td>'+
+      '<td style="font-weight:800;'+(diff<=STK_TYPES[stkCurrent].seuil?'color:#c0392b;':'')+'">'+diff.toFixed(2)+'</td>'+
+      '<td><button class="btn-del" onclick="stkDeleteRow('+JSON.stringify(r.id)+')">✕</button></td>';
+    tbody.appendChild(tr);
+  });
+
+  const ab = document.getElementById('stk-alertBox');
+  const seuil = STK_TYPES[stkCurrent].seuil;
+  const stockFinal = runE-runS;
+  if(ab){
+    if(stockFinal<=seuil){
+      ab.textContent = '⚠ STOCK BAS — '+STK_TYPES[stkCurrent].label+' : '+stockFinal.toFixed(2)+' kg restants (seuil : '+seuil+' kg) !';
+      ab.style.display='block';
+    } else { ab.style.display='none'; }
+  }
+
+  stkRenderCmup(rows);
+}
+
+function stkRenderCmup(rows){
+  const tbody=document.getElementById('stkTbodyCmup');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  if(rows.length===0){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:#777;">Aucune donnée</td></tr>';
+    return;
+  }
+  let poidsTotal=0, prixTotal=0;
+  rows.forEach(function(r){
+    const tr=document.createElement('tr');
+    if(r.type==='entree'){
+      poidsTotal+=r.qte; prixTotal+=(r.prix||0);
+      const prixKg = poidsTotal>0 ? prixTotal/poidsTotal : 0;
+      tr.innerHTML='<td>'+stkFormatDate(r.date)+'</td><td style="color:#2a5a1a;">'+r.qte.toFixed(2)+'</td><td>'+poidsTotal.toFixed(2)+'</td><td>'+prixKg.toFixed(3)+' €</td><td>'+prixTotal.toFixed(2)+' €</td><td></td><td></td><td></td>';
+    } else {
+      const prixMoyen = poidsTotal>0 ? prixTotal/poidsTotal : 0;
+      const prixSortie = r.qte*prixMoyen;
+      tr.innerHTML='<td></td><td></td><td></td><td></td><td>'+stkFormatDate(r.date)+'</td><td style="color:#c0392b;">'+r.qte.toFixed(2)+'</td><td>'+prixMoyen.toFixed(3)+' €</td><td>'+prixSortie.toFixed(2)+' €</td>';
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+/* ══ Pavé numérique tactile (Quantité / Prix) ══ */
+let stkNumpadCible=null;
+function stkOuvrirNumpad(id, titre){
+  stkNumpadCible = id;
+  document.getElementById('stkNumpadTitle').textContent = titre;
+  const current = document.getElementById(id).value;
+  document.getElementById('stkNumpadDisplay').textContent = current ? String(current) : '_';
+  document.getElementById('stkNumpadOverlay').classList.add('open');
+}
+function stkNumpadTap(c){
+  const d=document.getElementById('stkNumpadDisplay');
+  if(c==='.'){
+    if(d.textContent==='_'){ d.textContent='0.'; return; }
+    if(d.textContent.indexOf('.')!==-1) return;
+    d.textContent += '.';
+    return;
+  }
+  d.textContent = (d.textContent==='_') ? c : d.textContent+c;
+}
+function stkNumpadDel(){
+  const d=document.getElementById('stkNumpadDisplay');
+  d.textContent = d.textContent.length<=1 ? '_' : d.textContent.slice(0,-1);
+}
+function stkNumpadCancel(){
+  document.getElementById('stkNumpadOverlay').classList.remove('open');
+  stkNumpadCible=null;
+}
+function stkNumpadOk(){
+  const v = document.getElementById('stkNumpadDisplay').textContent;
+  document.getElementById('stkNumpadOverlay').classList.remove('open');
+  if(v==='_' || stkNumpadCible===null){ stkNumpadCible=null; return; }
+  const n = parseFloat(v);
+  if(isNaN(n) || n<0){ alert('Valeur invalide.'); stkNumpadCible=null; return; }
+  document.getElementById(stkNumpadCible).value = n;
+  stkNumpadCible=null;
+}
+
+function stkExportCSV(){
+  const rows = stkLoad(stkCurrent);
+  const out = [['Date','Fournisseur','N° Facture','Qté entrée (kg)','Total entrées','Qté sortie (kg)','Total sorties','Stock dispo']];
+  let runE=0, runS=0;
+  rows.forEach(function(r){
+    if(r.type==='entree') runE+=r.qte; else runS+=r.qte;
+    out.push([stkFormatDate(r.date), r.type==='entree'?(r.frs||''):'', r.type==='entree'?(r.fac||''):'', r.type==='entree'?r.qte.toFixed(2):'', runE.toFixed(2), r.type==='sortie'?r.qte.toFixed(2):'', runS.toFixed(2), (runE-runS).toFixed(2)]);
+  });
+  telechargerCSV('stock_'+stkCurrent+'.csv', out);
+}
+</script>
 
 <!-- ENVIRONNEMENT -->
 <div id="page-env" class="page">
@@ -1152,6 +1429,11 @@ function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
+  if (id === 'page-stocks') {
+    stkSyncFromCloud().then(function(){ stkRender(); });
+    var stkDateEl = document.getElementById('stkInDate');
+    if (stkDateEl) stkDateEl.value = new Date().toISOString().split('T')[0];
+  }
   if (id === 'page-son') {
     sonSyncFromCloud().then(function(){ sonRender(); });
     document.getElementById('inDate').value = new Date().toISOString().split('T')[0];
@@ -3620,7 +3902,7 @@ async function resetAllData() {
   if (!confirm('⚠️ Ceci va supprimer TOUTES les données de TOUS les modules (locale + cloud partagé). Cette action est irréversible pour tout le monde. Continuer ?')) return;
   if (!confirm('Confirmation finale : êtes-vous absolument sûr de vouloir tout effacer ?')) return;
 
-  const keys = ['env_elevage_v2', 'col_v21', 'nymphes_v1', 'larves_v7', 'ponte_v1', 'stock_son_ble_v4', 'stock_legumes_v1', 'stock_legumes_seuil', 'stock_levure_v1', 'stock_poids_casse_v1'];
+  const keys = ['env_elevage_v2', 'col_v21', 'nymphes_v1', 'larves_v7', 'ponte_v1', 'stock_son_ble_v4', 'stock_legumes_v1', 'stock_legumes_seuil', 'stock_levure_v1', 'stock_poids_casse_v1', 'stock_v2_son_de_ble', 'stock_v2_levure', 'stock_v2_farine', 'stock_v2_legumes'];
 
   // 1. Vider le localStorage
   keys.forEach(function(k) { localStorage.removeItem(k); });
