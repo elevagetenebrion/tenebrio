@@ -492,6 +492,17 @@
 .nym-check-item input{width:18px;height:18px;}
 .nym-recap-box{background:var(--nsurface);border:1px solid var(--nbordure);border-radius:8px;padding:10px 12px;font-size:.85rem;margin-bottom:14px;line-height:1.6;}
 .nym-recap-box b{color:var(--nor-fonce);}
+.nym-btn-travaux-vers{background:var(--nvert)!important;color:#fff!important;}
+.nym-v08-hist-wrap{max-width:900px;margin:0 auto 22px;}
+.nym-v08-hist-titre{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--ngris-sub);margin-bottom:8px;}
+.nym-v08-hist-item{background:var(--nvert-clair);border-left:4px solid var(--nvert);border-radius:6px;padding:8px 12px;margin-bottom:6px;font-size:.82rem;color:#1a3a20;}
+.nym-v08-hist-vide{color:var(--ngris-sub);font-size:.82rem;padding:4px;}
+.nym-recup-champ select,.nym-recup-champ input{width:100%;padding:11px 12px;border:1.5px solid var(--nbordure);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:.95rem;color:var(--ntexte);background:#fff;box-sizing:border-box;}
+.nym-ligne-potentielle{background:#fdf6e8!important;}
+.nym-ligne-potentielle td{border-bottom:1px dashed #d9b96a!important;color:#7a5a10;}
+.nym-badge-potentiel{display:inline-block;background:#f0a83c;color:#fff;border-radius:5px;padding:2px 7px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-left:5px;vertical-align:middle;}
+.nym-badge-bac-vers{display:inline-block;background:#fff;border:1px dashed #b8860b;color:#7a5a10;border-radius:6px;padding:2px 8px;font-weight:700;}
+.nym-btn-travaux-mini{background:var(--nvert);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap;}
 .nym-recap-box .nym-alerte-txt{color:var(--nrouge);font-weight:700;}
 .nym-recap-box .nym-ok-txt{color:var(--nvert);font-weight:700;}
 .nym-modal-btns{display:flex;gap:10px;margin-top:6px;}
@@ -1214,8 +1225,6 @@ function stkExportCSV(){
   </div>
 </div>
 
-<button class="record-btn" id="recordBtn" onclick="enregistrer()">⬤ Enregistrer la mesure</button>
-
 <div class="obs-box" id="obsBox">
   <div class="obs-title">📝 Observations</div>
   <div id="obsContent"></div>
@@ -1226,6 +1235,8 @@ function stkExportCSV(){
   <textarea id="envSolutionApportee" placeholder="Notez ici la solution apportée suite aux observations (ventilation, ajustement, intervention...)" style="width:100%;min-height:120px;border:1.5px solid var(--border);border-radius:8px;padding:12px;font-family:inherit;font-size:.92rem;resize:vertical;margin-top:8px;"></textarea>
 
 </div>
+
+<button class="record-btn" id="recordBtn" onclick="enregistrer()">⬤ Enregistrer la mesure</button>
 
 <hr>
 
@@ -1522,6 +1533,8 @@ function envUpdateDisplay(field) {
     }
     statusEl.innerHTML = badge;
   }
+  const tv = parseFloat(envState.temp), hv = parseFloat(envState.hygro);
+  if (!isNaN(tv) && !isNaN(hv)) genObservations(tv, hv);
 }
 
 function enregistrer() {
@@ -1549,11 +1562,10 @@ function enregistrer() {
   clearField('temp'); clearField('hygro');
   showToast('✓ Mesure enregistrée');
   envRenderAll();
-  genObservations(entry);
+  genObservations(temp, hygro);
 }
 
-function genObservations(entry) {
-  const { temp, hygro } = entry;
+function genObservations(temp, hygro) {
   const lines = [];
   if (temp>=25&&temp<=28) lines.push(['✅',`Température de ${temp}°C : dans la plage idéale (25–28°C).`]);
   else if (temp>28&&temp<=30) lines.push(['⚠️',`Température de ${temp}°C légèrement élevée. Vérifier la ventilation.`]);
@@ -2480,7 +2492,7 @@ function ponteRender() {
     tbody.innerHTML=''; emptyState.style.display='block'; alertBox.style.display='none'; return;
   }
   emptyState.style.display='none';
-  lignes.sort(function(a,b){return a.dateEntree.localeCompare(b.dateEntree);});
+  lignes.sort(function(a,b){return (parseInt(a.bac,10)||0)-(parseInt(b.bac,10)||0);});
   var urgents = lignes.filter(function(l){return !l.sorti&&!l.fusionne&&ponteDiffDays(l.dateSortie)<=1;});
   if(urgents.length){
     alertBox.style.display='block';
@@ -2844,13 +2856,26 @@ function nymRenderCompteur(){
 
 function nymRenderTableau(){
   const tbody=document.getElementById('nymCorpsTableau'); if(!tbody) return;
+  const potentiels=nymV08Eligibles().slice().sort(function(a,b){return (parseInt(a.bac,10)||0)-(parseInt(b.bac,10)||0);});
+  const potHtml=potentiels.map(function(r){
+    const auto=larNymphAuto(r);
+    return '<tr class="nym-ligne-potentielle">'+
+      '<td>'+larFr(r.dateEntree)+'</td>'+
+      '<td><span class="nym-badge-bac-vers">Vers n°'+r.bac+'</span></td>'+
+      '<td class="nym-poids-val">'+(auto!==null?auto.toLocaleString('fr-FR'):'—')+' <span class="nym-badge-potentiel">Potentiel</span></td>'+
+      '<td colspan="4" style="font-style:italic;color:#a08040;">En attente de récupération des nymphes</td>'+
+      '<td class="action-cell"><button class="nym-btn-travaux-mini" data-action="travaux-potentiel" data-bac="'+r.bac+'">🛠 Travaux</button></td>'+
+      '</tr>';
+  }).join('');
+
   if(!NYM_DB.lots.length){
-    tbody.innerHTML='<tr><td colspan="8" class="nym-table-vide">Aucun bac de nymphes enregistré. Utilisez "+ Ajouter un bac".</td></tr>';
+    tbody.innerHTML=(potentiels.length?'':'<tr><td colspan="8" class="nym-table-vide">Aucun bac de nymphes enregistré. Utilisez "+ Ajouter un bac".</td></tr>')+potHtml;
     nymRenderCompteur();
     const tm=document.getElementById('nymTotalMorts'); if(tm) tm.textContent='0';
+    nymRenderV08Historique();
     return;
   }
-  const lots=NYM_DB.lots.slice().sort(function(a,b){return (a.dateEntree||'').localeCompare(b.dateEntree||'');});
+  const lots=NYM_DB.lots.slice().sort(function(a,b){return (parseInt(a.bac,10)||0)-(parseInt(b.bac,10)||0);});
   tbody.innerHTML=lots.map(function(l){
     const trie=l.tri && l.tri.date;
     const tris=l.tris||(trie?[l.tri]:[]);
@@ -2888,7 +2913,7 @@ function nymRenderTableau(){
       });
     }
     return html;
-  }).join('');
+  }).join('')+potHtml;
   nymRenderCompteur();
 
   const trisVus=new Set();
@@ -2901,6 +2926,7 @@ function nymRenderTableau(){
     });
   });
   const tm=document.getElementById('nymTotalMorts'); if(tm) tm.textContent=totalMorts+' g';
+  nymRenderV08Historique();
 }
 
 function nymRenderGrillesCreees(){
@@ -2909,7 +2935,9 @@ function nymRenderGrillesCreees(){
     zone.innerHTML='<span class="nym-grilles-vide">Aucune grille créée pour le moment.</span>';
     return;
   }
-  zone.innerHTML=NYM_DB.grillesCreees.map(function(g){
+  zone.innerHTML=NYM_DB.grillesCreees.slice().sort(function(a,b){
+    return (parseInt(a.bac,10)||0)-(parseInt(b.bac,10)||0);
+  }).map(function(g){
     if (g.enAttente) {
       const manque = NYM_SEUIL_GRILLE_G - g.poidsActuel;
       return '<div class="nym-grille-chip" data-id="'+g.id+'" style="border-color:#dd6b20;background:#fffaf0;">'+
@@ -3132,6 +3160,12 @@ function nymAttacherEvenements(){
   nymSafeListen('nymBApply','click', nymApplySimInput);
   nymSafeListen('nymBReset','click', nymResetSim);
   nymSafeListen('nymSimDateInput','keydown', function(e){if(e.key==='Enter')nymApplySimInput();});
+
+  nymSafeListen('nymBtnTravauxVers08','click', nymOuvrirRecupModal);
+  nymSafeListen('nymRecupBac','change', nymMajPoidsRecupAuto);
+  nymSafeListen('nymRecupAnnuler','click', nymFermerRecupModal);
+  nymSafeListen('nymRecupValider','click', nymValiderRecup);
+  nymSafeListen('nymOvRecup','click', function(e){ if(e.target===document.getElementById('nymOvRecup')) nymFermerRecupModal(); });
 
   nymSafeListen('nymKeypadPanel','click', function(e){e.stopPropagation();});
   nymSafeListen('nymKeypadOverlay','click', function(){nymFermerPave();});
@@ -3382,6 +3416,8 @@ function nymAttacherEvenements(){
   nymSafeListen('nymCorpsTableau','click', function(e){
     const btn=e.target.closest('[data-action="modifier"]');
     if(btn) nymOuvrirModifier(btn.dataset.id);
+    const btnT=e.target.closest('[data-action="travaux-potentiel"]');
+    if(btnT) nymOuvrirRecupModal(btnT.dataset.bac);
   });
   nymSafeListen('nymZoneGrillesCreees','click', function(e){
     const btn=e.target.closest('[data-action="modifier-grille"]');
@@ -3401,9 +3437,86 @@ function nymMiseAZero(){
 function initNymphesPage(){
   NYM_DB = nymChargerDB();
   nymAttacherEvenements();
+  larLoad();
   nymRefreshSim();
   nymRenderTableau();
   nymRenderGrillesCreees();
+}
+
+/* ══ Vers 08 arrivés à maturité → récupération des nymphes ══ */
+function nymV08Eligibles(){
+  larLoad();
+  return larData.filter(function(r){
+    const v=parseFloat(r.v08);
+    return !isNaN(v) && v>0 && !r.nymphTransfere;
+  });
+}
+function nymRenderV08Historique(){
+  const wrap=document.getElementById('nymV08HistWrap');
+  const hist=document.getElementById('nymV08Historique');
+  if(!hist||!wrap) return;
+  const entries=[];
+  larData.forEach(function(r){
+    if(Array.isArray(r.travaux)){
+      r.travaux.forEach(function(t){
+        if(t.type==='Récupération nymphes') entries.push({date:t.date,bac:r.bac,poids:t.poids,bacReception:t.bacReception});
+      });
+    }
+  });
+  if(!entries.length){ wrap.style.display='none'; hist.innerHTML=''; return; }
+  wrap.style.display='block';
+  entries.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  hist.innerHTML=entries.map(function(e){
+    return '<div class="nym-v08-hist-item">'+larFr(e.date)+' — Vers n°'+e.bac+' : récupération des nymphes, '+(parseFloat(e.poids)||0).toLocaleString('fr-FR')+' g → bac de réception n°'+e.bacReception+'</div>';
+  }).join('');
+}
+function nymMajPoidsRecupAuto(){
+  const selBac=document.getElementById('nymRecupBac');
+  const row=larData.find(function(r){return String(r.bac)===String(selBac.value);});
+  const auto=row?larNymphAuto(row):null;
+  document.getElementById('nymRecupPoids').value=auto!==null?auto:'';
+}
+function nymOuvrirRecupModal(bacPreselectionne){
+  larLoad();
+  const elig=nymV08Eligibles();
+  if(!elig.length){ nymToast('Aucun bac de vers arrivé à maturité disponible.'); return; }
+  const selBac=document.getElementById('nymRecupBac');
+  selBac.innerHTML='';
+  elig.forEach(function(r){
+    const opt=document.createElement('option');
+    opt.value=r.bac; opt.textContent='Bac n°'+r.bac;
+    if(bacPreselectionne && String(r.bac)===String(bacPreselectionne)) opt.selected=true;
+    selBac.appendChild(opt);
+  });
+  nymMajPoidsRecupAuto();
+  const selRecep=document.getElementById('nymRecupBacReception');
+  nymRemplirSelectBacs(selRecep, null, null);
+  const optVide=document.createElement('option');
+  optVide.value=''; optVide.textContent='-- Choisir un bac --';
+  selRecep.insertBefore(optVide, selRecep.firstChild);
+  selRecep.value='';
+  document.getElementById('nymOvRecup').classList.add('visible');
+}
+function nymFermerRecupModal(){ document.getElementById('nymOvRecup').classList.remove('visible'); }
+function nymValiderRecup(){
+  const bac=document.getElementById('nymRecupBac').value;
+  const poids=parseFloat(document.getElementById('nymRecupPoids').value);
+  const bacReception=parseInt(document.getElementById('nymRecupBacReception').value,10);
+  if(!bac){ nymToast('Aucun bac sélectionné.'); return; }
+  if(isNaN(poids)||poids<=0){ nymToast('Merci de renseigner un poids récupéré valide.'); return; }
+  if(!bacReception){ nymToast('Merci de choisir un bac de réception.'); return; }
+  const row=larData.find(function(r){return String(r.bac)===String(bac);});
+  if(!row){ nymToast('Bac introuvable.'); return; }
+  const today=nymTodayISO();
+  NYM_DB.lots.push({id:nymGenId(),dateEntree:today,bac:bacReception,poids:poids,tri:null,origine:'transfert_larves'});
+  nymSauverDB(NYM_DB);
+  if(!Array.isArray(row.travaux)) row.travaux=[];
+  row.travaux.push({date:today,type:'Récupération nymphes',stade:'v08',poids:poids,bacReception:bacReception});
+  row.nymphTransfere=true;
+  larSave();
+  nymFermerRecupModal();
+  nymRenderTableau();
+  nymToast('Bac n°'+bacReception+' créé dans Nymphes ('+poids.toLocaleString('fr-FR')+' g).');
 }
 
 /* ══ LARVES ══ */
@@ -3541,7 +3654,11 @@ function larRender(){
 
   let rows='';
   let nbAffiches=0;
-  larData.forEach((row,i)=>{
+  const larOrdreAffichage=larData.map(function(row,i){return i;}).sort(function(a,b){
+    return (parseInt(larData[a].bac,10)||0)-(parseInt(larData[b].bac,10)||0);
+  });
+  larOrdreAffichage.forEach(function(i){
+    const row=larData[i];
     if(filtreBacs.length>0 || filtreDate){
       const bacStr = String(row.bac||'').trim();
       const matchBac = filtreBacs.length>0 && filtreBacs.some(function(f){ return bacStr===f || bacStr.indexOf(f)!==-1; });
@@ -4835,6 +4952,7 @@ function larTravFmtDate(iso){
   <button class="nym-btn-action nym-btn-ajouter" id="nymBtnAjouter">+ Ajouter un bac</button>
   <button class="nym-btn-action nym-btn-fusionner" id="nymBtnFusionner">⇄ Fusionner</button>
   <button class="nym-btn-action nym-btn-trier" id="nymBtnTrier">⚖ Trier les nymphes</button>
+  <button class="nym-btn-action nym-btn-travaux-vers" id="nymBtnTravauxVers08">🛠 Travaux sur les bacs (Vers 08)</button>
 </div>
 
 <div class="nym-table-wrap">
@@ -4861,6 +4979,11 @@ function larTravFmtDate(iso){
   </table>
 </div>
 
+<div class="nym-v08-hist-wrap" id="nymV08HistWrap" style="display:none;">
+  <div class="nym-v08-hist-titre">Historique des récupérations (Vers 08 → Nymphes 06)</div>
+  <div id="nymV08Historique"></div>
+</div>
+
 <div class="nym-grilles-section">
   <div class="nym-grilles-titre">Grilles &amp; bacs créés</div>
   <div class="nym-grilles-box" id="nymZoneGrillesCreees">
@@ -4873,6 +4996,19 @@ function larTravFmtDate(iso){
 </div>
 
 <!-- MODALES NYMPHES -->
+<div class="nym-overlay" id="nymOvRecup">
+  <div class="nym-modal">
+    <h2>🛠 Récupération des nymphes</h2>
+    <div class="nym-champ nym-recup-champ"><label>Bac (Vers 08)</label><select id="nymRecupBac"></select></div>
+    <div class="nym-champ nym-recup-champ"><label>Poids récupéré (g)</label><input type="number" id="nymRecupPoids" min="0" step="0.1" placeholder="Ex: 350"></div>
+    <div class="nym-champ nym-recup-champ"><label>Bac de réception (nymphes)</label><select id="nymRecupBacReception"></select></div>
+    <div class="nym-modal-btns">
+      <button class="nym-btn-annuler" id="nymRecupAnnuler">Annuler</button>
+      <button class="nym-btn-valider" id="nymRecupValider">Valider</button>
+    </div>
+  </div>
+</div>
+
 <div class="nym-overlay" id="nymOvAjouter">
   <div class="nym-modal">
     <h2>Ajouter un bac de nymphes</h2>
