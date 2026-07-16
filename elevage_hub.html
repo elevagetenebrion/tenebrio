@@ -206,9 +206,9 @@
   .value-display { font-family: var(--mono); font-size: 2.2rem; font-weight: 700; letter-spacing: -.02em; min-width: 70px; line-height: 1; }
   .temp-card .value-display { color: var(--red); }
   .hygro-card .value-display { color: var(--blue); }
-  .mic-btn{background:#fff;border:1.5px solid var(--border);border-radius:50%;width:36px;height:36px;font-size:1.05rem;cursor:pointer;margin-left:10px;display:inline-flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0;}
-  .mic-btn:active{transform:scale(.92);}
-  .mic-btn.listening{background:#e53e3e;border-color:#e53e3e;animation:micPulse 1.1s infinite;}
+  .mic-btn-full{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:11px;font-size:.85rem;font-weight:700;color:#333;cursor:pointer;margin-top:10px;font-family:inherit;}
+  .mic-btn-full:active{transform:scale(.98);}
+  .mic-btn-full.listening{background:#e53e3e;color:#fff;border-color:#e53e3e;animation:micPulse 1.1s infinite;}
   @keyframes micPulse{0%{box-shadow:0 0 0 0 rgba(229,62,62,.5);}70%{box-shadow:0 0 0 12px rgba(229,62,62,0);}100%{box-shadow:0 0 0 0 rgba(229,62,62,0);}}
   .unit { font-family: var(--mono); font-size: 1.1rem; color: var(--sub); }
   .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
@@ -1192,9 +1192,9 @@ function stkExportCSV(){
     <div class="input-row">
       <div class="value-display" id="tempDisplay">—</div>
       <div class="unit">°C</div>
-      <button class="mic-btn" id="tempMicBtn" onclick="envVoiceStart('temp')" title="Dicter la valeur au micro">🎤</button>
       <div style="margin-left:auto" id="tempStatus"></div>
     </div>
+    <button class="mic-btn-full" id="tempMicBtn" onclick="envVoiceStart('temp')">🎤 Dicter la température</button>
     <div class="keypad" id="tempKeypad">
       <button class="key" onclick="kp('temp','1')">1</button>
       <button class="key" onclick="kp('temp','2')">2</button>
@@ -1216,9 +1216,9 @@ function stkExportCSV(){
     <div class="input-row">
       <div class="value-display" id="hygroDisplay">—</div>
       <div class="unit">%</div>
-      <button class="mic-btn" id="hygroMicBtn" onclick="envVoiceStart('hygro')" title="Dicter la valeur au micro">🎤</button>
       <div style="margin-left:auto" id="hygroStatus"></div>
     </div>
+    <button class="mic-btn-full" id="hygroMicBtn" onclick="envVoiceStart('hygro')">🎤 Dicter l'hygrométrie</button>
     <div class="keypad" id="hygroKeypad">
       <button class="key" onclick="kp('hygro','1')">1</button>
       <button class="key" onclick="kp('hygro','2')">2</button>
@@ -1244,6 +1244,7 @@ function stkExportCSV(){
 
 <div class="obs-box" style="display:block;">
   <div class="obs-title">✅ Solution apportée</div>
+  <button class="mic-btn-full" id="solMicBtn" onclick="envVoiceStartText('envSolutionApportee','solMicBtn')">🎤 Dicter la solution</button>
   <textarea id="envSolutionApportee" placeholder="Notez ici la solution apportée suite aux observations (ventilation, ajustement, intervention...)" style="width:100%;min-height:120px;border:1.5px solid var(--border);border-radius:8px;padding:12px;font-family:inherit;font-size:.92rem;resize:vertical;margin-top:8px;"></textarea>
 
 </div>
@@ -1556,6 +1557,31 @@ function envSetVoice(field, val){
   envState[field] = String(val);
   if(!envState[field+'Time']) envState[field+'Time'] = new Date();
   envUpdateDisplay(field);
+}
+function envVoiceStartText(textareaId, btnId){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ showToast('🎤 Reconnaissance vocale non disponible sur ce navigateur.'); return; }
+  if(envRecognition){ try{ envRecognition.onend=null; envRecognition.stop(); }catch(e){} }
+  const btn = document.getElementById(btnId);
+  const ta = document.getElementById(textareaId);
+  envRecognition = new SR();
+  envRecognition.lang = 'fr-FR';
+  envRecognition.interimResults = false;
+  envRecognition.maxAlternatives = 1;
+  envRecognition.onstart = function(){ if(btn) btn.classList.add('listening'); };
+  envRecognition.onresult = function(e){
+    const transcript = e.results[0][0].transcript;
+    if(ta){
+      const sep = (ta.value && !/[\s\n]$/.test(ta.value)) ? ' ' : '';
+      ta.value = ta.value + sep + transcript;
+    }
+    showToast('🎤 Texte ajouté : «'+transcript+'»');
+  };
+  envRecognition.onerror = function(e){
+    if(e.error!=='no-speech') showToast('🎤 Erreur micro : '+e.error);
+  };
+  envRecognition.onend = function(){ if(btn) btn.classList.remove('listening'); };
+  try{ envRecognition.start(); }catch(e){}
 }
 function envParseNombreVocal(text){
   let t = String(text).toLowerCase().trim().replace(',', '.');
