@@ -210,6 +210,10 @@
   .mic-btn-full:active{transform:scale(.98);}
   .mic-btn-full.listening{background:#e53e3e;color:#fff;border-color:#e53e3e;animation:micPulse 1.1s infinite;}
   @keyframes micPulse{0%{box-shadow:0 0 0 0 rgba(229,62,62,.5);}70%{box-shadow:0 0 0 12px rgba(229,62,62,0);}100%{box-shadow:0 0 0 0 rgba(229,62,62,0);}}
+  .vox-mic-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#fff;border:1.5px solid #cbd5e1;color:#374151;cursor:pointer;font-size:.9rem;flex-shrink:0;font-family:inherit;padding:0;}
+  .vox-mic-btn:active{transform:scale(.94);}
+  .vox-mic-btn.listening{background:#e53e3e;color:#fff;border-color:#e53e3e;animation:micPulse 1.1s infinite;}
+  .vox-hint{font-size:.7rem;color:#8a94a6;font-style:italic;}
   .unit { font-family: var(--mono); font-size: 1.1rem; color: var(--sub); }
   .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
   .key { background: #fff; border: 1.5px solid var(--border); border-radius: 6px; padding: 8px 4px; font-family: var(--mono); font-size: .9rem; font-weight: 600; cursor: pointer; text-align: center; transition: background .1s, border-color .1s; color: var(--text); }
@@ -899,6 +903,8 @@
       <div class="form-group"><button class="btn-add" style="background:#2a5a1a;" onclick="stkAddRow('entree')">✔ Entrée</button></div>
       <div class="form-group"><button class="btn-add" style="background:#c0392b;" onclick="stkAddRow('sortie')">✔ Sortie</button></div>
     </div>
+    <button class="mic-btn-full" id="stkMicBtn" onclick="stkDicter()" type="button">🎤 Dicter (quantité, prix, fournisseur, facture)</button>
+    <div class="vox-hint" style="text-align:center;display:block;margin-top:4px;">Touchez pour allumer/éteindre. Dites « entrée » ou « sortie » pour valider.</div>
   </div>
 
   <div class="table-wrapper" style="max-width:1100px;">
@@ -1605,6 +1611,103 @@ function voxBasculer(btnRef, onPhrase, options){
     if(voxActifBtn===btn) voxActifBtn=null;
   };
   try{ voxRecognition.start(); }catch(e){}
+}
+const VOX_MOIS={janvier:1,'février':2,fevrier:2,mars:3,avril:4,mai:5,juin:6,juillet:7,'août':8,aout:8,septembre:9,octobre:10,novembre:11,'décembre':12,decembre:12};
+function voxParseDateFr(text){
+  const low=String(text).toLowerCase();
+  if(/aujourd'?\s*hui/.test(low)) return new Date().toISOString().slice(0,10);
+  if(/\bhier\b/.test(low)){ const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }
+  let m=low.match(/\b(\d{1,2})\s*[\/\-]\s*(\d{1,2})(?:\s*[\/\-]\s*(\d{2,4}))?\b/);
+  if(m){
+    const j=parseInt(m[1],10), mo=parseInt(m[2],10);
+    let an=m[3]?parseInt(m[3],10):new Date().getFullYear();
+    if(an<100) an+=2000;
+    if(j>=1&&j<=31&&mo>=1&&mo<=12) return an+'-'+String(mo).padStart(2,'0')+'-'+String(j).padStart(2,'0');
+  }
+  m=low.match(/\b(\d{1,2})\s+(janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre)\b(?:\s+(\d{4}))?/);
+  if(m){
+    const j=parseInt(m[1],10); const mo=VOX_MOIS[m[2].replace('û','u')]||VOX_MOIS[m[2]];
+    let an=m[3]?parseInt(m[3],10):new Date().getFullYear();
+    if(j>=1&&j<=31&&mo) return an+'-'+String(mo).padStart(2,'0')+'-'+String(j).padStart(2,'0');
+  }
+  return null;
+}
+
+/* ══ Saisie vocale — Stocks ══ */
+function stkDicter(){
+  voxBasculer('stkMicBtn', function(transcript){
+    const low=transcript.toLowerCase().trim();
+    const aChiffre=/\d/.test(low);
+    if(!aChiffre && /\bsortie\b/.test(low)){ stkAddRow('sortie'); showToast('🎤 Commande vocale : sortie enregistrée.'); return; }
+    if(!aChiffre && /\b(entr[ée]e?|enregistrer|valider)\b/.test(low)){ stkAddRow('entree'); showToast('🎤 Commande vocale : entrée enregistrée.'); return; }
+    const messages=[]; let m;
+    m=low.match(/quantit[ée]\s*(?:de)?\s*(\d+(?:[.,]\d+)?)/) || low.match(/(\d+(?:[.,]\d+)?)\s*kilo/);
+    if(m){ document.getElementById('stkInQte').value=parseFloat(m[1].replace(',','.')); messages.push('Quantité '+m[1]+' kg'); }
+    m=low.match(/prix\s*(?:de|d')?\s*(\d+(?:[.,]\d+)?)/) || low.match(/(\d+(?:[.,]\d+)?)\s*euros?/);
+    if(m){ document.getElementById('stkInPrix').value=parseFloat(m[1].replace(',','.')); messages.push('Prix '+m[1]+' €'); }
+    m=low.match(/fournisseur\s+(.+?)(?=\s+facture\b|\s+quantit|\s+prix|$)/);
+    if(m){ document.getElementById('stkInFrs').value=m[1].trim(); messages.push('Fournisseur '+m[1].trim()); }
+    m=low.match(/facture\s+(.+?)(?=\s+fournisseur\b|\s+quantit|\s+prix|$)/);
+    if(m){ document.getElementById('stkInFac').value=m[1].trim(); messages.push('Facture '+m[1].trim()); }
+    showToast(messages.length ? ('🎤 '+messages.join(' · ')+' — dites « entrée » ou « sortie » pour valider.') : ('🎤 Non compris : «'+transcript+'»'));
+  }, {commandeEnregistrer:true});
+}
+
+/* ══ Saisie vocale — Œufs (tableau de ponte) ══ */
+function ponteDicter(){
+  voxBasculer('ponteMicBtn', function(transcript){
+    const low=transcript.toLowerCase();
+    if(/\b(ajouter|enregistrer|valider)\b/.test(low)){ ponteAjouterLigne(); showToast('🎤 Commande vocale : bac ajouté.'); return; }
+    const messages=[];
+    let m=low.match(/bac\s*(?:num[ée]ro|n[°o]?)?\s*(\d+)/);
+    if(m){
+      const sel=document.getElementById('ponteInputBac');
+      const opt=[...sel.options].find(o=>o.value===m[1]);
+      if(opt){ sel.value=m[1]; messages.push('Bac '+m[1]); }
+      else messages.push('⚠ Bac '+m[1]+' indisponible');
+    }
+    const d=voxParseDateFr(low);
+    if(d){ document.getElementById('ponteInputDate').value=d; messages.push('Date '+d.split('-').reverse().join('/')); }
+    showToast(messages.length ? ('🎤 '+messages.join(' · ')+' — dites « ajouter » pour valider.') : ('🎤 Non compris : «'+transcript+'»'));
+  }, {commandeEnregistrer:true});
+}
+
+/* ══ Saisie vocale — Nymphes ══ */
+function nymDicterAjout(){
+  voxBasculer('nymAjMicBtn', function(transcript){
+    const low=transcript.toLowerCase();
+    if(/\b(ajouter|enregistrer|valider)\b/.test(low)){ const b=document.getElementById('nymFAjValider'); if(b) b.click(); showToast('🎤 Commande vocale : validation demandée.'); return; }
+    const messages=[];
+    let m=low.match(/bac\s*(?:num[ée]ro|n[°o]?)?\s*(\d+)/);
+    if(m){
+      const sel=document.getElementById('nymFAjBac');
+      const opt=[...sel.options].find(o=>o.value===m[1]);
+      if(opt){ sel.value=m[1]; messages.push('Bac '+m[1]); }
+      else messages.push('⚠ Bac '+m[1]+' indisponible');
+    }
+    const d=voxParseDateFr(low);
+    if(d){ document.getElementById('nymFAjDate').value=d; messages.push('Date '+d.split('-').reverse().join('/')); }
+    showToast(messages.length ? ('🎤 '+messages.join(' · ')+' — pensez au poids, puis dites « ajouter ».') : ('🎤 Non compris : «'+transcript+'»'));
+  }, {commandeEnregistrer:true});
+}
+
+/* ══ Saisie vocale — Vers / Larves ══ */
+function larDicterAjout(){
+  voxBasculer('larFMicBtn', function(transcript){
+    const low=transcript.toLowerCase();
+    if(/\b(enregistrer|ajouter|valider)\b/.test(low)){ larSaveEntry(); showToast('🎤 Commande vocale : bac enregistré.'); return; }
+    const messages=[];
+    let m=low.match(/bac\s*(?:num[ée]ro|n[°o]?)?\s*(\d+)/);
+    if(m){
+      const sel=document.getElementById('larFBac');
+      const opt=[...sel.options].find(o=>o.value===m[1]);
+      if(opt){ sel.value=m[1]; messages.push('Bac '+m[1]); }
+      else messages.push('⚠ Bac '+m[1]+' indisponible');
+    }
+    const d=voxParseDateFr(low);
+    if(d){ document.getElementById('larFDate').value=d; if(typeof larUpdDprev==='function') larUpdDprev(d); messages.push('Date '+d.split('-').reverse().join('/')); }
+    showToast(messages.length ? ('🎤 '+messages.join(' · ')+' — dites « enregistrer » pour valider.') : ('🎤 Non compris : «'+transcript+'»'));
+  }, {commandeEnregistrer:true});
 }
 
 /* ══ Saisie vocale (Température / Hygrométrie) ══ */
@@ -5171,11 +5274,15 @@ function larTravFmtDate(iso){
       </div>
       <div class="ponte-form-group">
         <label>N° Bac</label>
-        <select id="ponteInputBac"></select>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select id="ponteInputBac"></select>
+          <button type="button" class="vox-mic-btn" id="ponteMicBtn" onclick="ponteDicter()" title="Dicter à la voix">🎤</button>
+        </div>
       </div>
       <button class="ponte-btn ponte-btn-ajouter" onclick="ponteAjouterLigne()">+ Ajouter</button>
       <button class="ponte-btn ponte-btn-reset" onclick="ponteOuvrirReset()">↺ Remise à zéro</button>
     </div>
+    <div class="vox-hint" style="display:block;margin-top:4px;">🎤 Dites « bac 12 aujourd'hui », puis « ajouter » pour valider.</div>
   </div>
 
   <div id="ponteAlertBox">
@@ -5333,7 +5440,13 @@ function larTravFmtDate(iso){
   <div class="nym-modal">
     <h2>Ajouter un bac de nymphes</h2>
     <div class="nym-champ"><label>Date d'entrée</label><input type="date" id="nymFAjDate"/></div>
-    <div class="nym-champ"><label>N° de bac</label><select id="nymFAjBac"></select></div>
+    <div class="nym-champ"><label>N° de bac</label>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <select id="nymFAjBac" style="flex:1;"></select>
+        <button type="button" class="vox-mic-btn" id="nymAjMicBtn" onclick="nymDicterAjout()" title="Dicter à la voix">🎤</button>
+      </div>
+      <div class="vox-hint" style="display:block;margin-top:4px;">🎤 Dites « bac 6 aujourd'hui » (le poids reste à saisir au clavier), puis « ajouter ».</div>
+    </div>
     <div class="nym-champ"><label>Poids (g)</label><input type="text" id="nymFAjPoidsAffiche" class="nym-champ-affichage" readonly value="0"/></div>
     <div class="nym-modal-btns">
       <button class="nym-btn-annuler" id="nymFAjAnnuler">Annuler</button>
@@ -5621,7 +5734,13 @@ function larTravFmtDate(iso){
   <div class="lar-modal">
     <h2 id="larModalTitle">Nouveau bac larvaire</h2>
     <div class="lar-frow"><label>Date d'entrée (J+0 — Vers 00)</label><input type="date" id="larFDate"></div>
-    <div class="lar-frow"><label>Numéro de bac</label><select id="larFBac"></select></div>
+    <div class="lar-frow"><label>Numéro de bac</label>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <select id="larFBac" style="flex:1;"></select>
+        <button type="button" class="vox-mic-btn" id="larFMicBtn" onclick="larDicterAjout()" title="Dicter à la voix">🎤</button>
+      </div>
+      <div class="vox-hint" style="display:block;margin-top:4px;">🎤 Dites « bac 12 aujourd'hui », puis « enregistrer ».</div>
+    </div>
     <div class="lar-dprev">
       <div>Vers 00 (J+0) : <span id="larDp0">—</span></div>
       <div>Vers 0 (J+15) : <span id="larDp15">—</span></div>
