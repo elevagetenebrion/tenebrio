@@ -1464,6 +1464,7 @@ async function fbSafeLoad(key, fallback) {
 
 /* ══ NAVIGATION ══ */
 function showPage(id) {
+  if(typeof voxArreter==='function') voxArreter(true);
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
@@ -1538,21 +1539,84 @@ function clearField(field) {
   if(t) t.textContent='';
 }
 
-/* ══ Saisie vocale (Température / Hygrométrie) ══ */
-let envRecognition=null, envVoiceField=null;
-function envVoiceStart(field){
+/* ══ MOTEUR VOCAL GÉNÉRIQUE (marche/arrêt + commande "enregistrer") — utilisé par toutes les pages ══ */
+let voxRecognition=null, voxActifBtn=null, voxErreurFatale=false;
+function voxAppliquerLibelle(btn, actif){
+  if(!btn || !btn.classList.contains('mic-btn-full')) return;
+  if(actif){
+    if(!btn.dataset.libelleOff) btn.dataset.libelleOff = btn.textContent;
+    btn.textContent = '⏹ Micro allumé — parlez (toucher pour éteindre)';
+  } else if(btn.dataset.libelleOff){
+    btn.textContent = btn.dataset.libelleOff;
+  }
+}
+function voxArreter(silencieux){
+  if(voxRecognition){
+    const r=voxRecognition; voxRecognition=null;
+    try{ r.onend=null; r.onresult=null; r.onerror=null; r.stop(); }catch(e){}
+  }
+  if(voxActifBtn){
+    voxActifBtn.classList.remove('listening');
+    voxAppliquerLibelle(voxActifBtn, false);
+    voxActifBtn=null;
+  }
+  if(!silencieux) {}
+}
+function voxBasculer(btnRef, onPhrase, options){
+  const btn=(typeof btnRef==='string')?document.getElementById(btnRef):btnRef;
+  if(!btn) return;
+  if(btn.classList.contains('listening')){
+    voxArreter();
+    showToast('🎤 Micro éteint.');
+    return;
+  }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){ showToast('🎤 Reconnaissance vocale non disponible sur ce navigateur.'); return; }
-  if(envRecognition){ try{ envRecognition.onend=null; envRecognition.stop(); }catch(e){} }
-  envVoiceField = field;
-  const btn = document.getElementById(field==='temp'?'tempMicBtn':'hygroMicBtn');
-  envRecognition = new SR();
-  envRecognition.lang = 'fr-FR';
-  envRecognition.interimResults = false;
-  envRecognition.maxAlternatives = 1;
-  envRecognition.onstart = function(){ if(btn) btn.classList.add('listening'); };
-  envRecognition.onresult = function(e){
-    const transcript = e.results[0][0].transcript;
+  voxArreter(true);
+  voxActifBtn=btn; voxErreurFatale=false;
+  voxRecognition = new SR();
+  voxRecognition.lang = 'fr-FR';
+  voxRecognition.continuous = !(options && options.continuous===false);
+  voxRecognition.interimResults = false;
+  voxRecognition.maxAlternatives = 1;
+  voxRecognition.onstart = function(){
+    btn.classList.add('listening');
+    voxAppliquerLibelle(btn, true);
+    showToast(options&&options.commandeEnregistrer ? '🎤 Micro allumé — dites « enregistrer » pour valider.' : '🎤 Micro allumé — parlez.');
+  };
+  voxRecognition.onresult = function(e){
+    for(let i=e.resultIndex; i<e.results.length; i++){
+      if(e.results[i].isFinal) onPhrase(e.results[i][0].transcript);
+    }
+  };
+  voxRecognition.onerror = function(e){
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){
+      voxErreurFatale=true; showToast('🎤 Erreur micro : '+e.error);
+    } else if(e.error!=='no-speech' && e.error!=='aborted'){
+      showToast('🎤 Erreur micro : '+e.error);
+    }
+  };
+  voxRecognition.onend = function(){
+    if(voxActifBtn===btn && !voxErreurFatale){
+      try{ voxRecognition.start(); return; }catch(e){}
+    }
+    btn.classList.remove('listening');
+    voxAppliquerLibelle(btn, false);
+    if(voxActifBtn===btn) voxActifBtn=null;
+  };
+  try{ voxRecognition.start(); }catch(e){}
+}
+
+/* ══ Saisie vocale (Température / Hygrométrie) ══ */
+function envVoiceStart(field){
+  const btnId = field==='temp' ? 'tempMicBtn' : 'hygroMicBtn';
+  voxBasculer(btnId, function(transcript){
+    const low = transcript.toLowerCase();
+    if(/\b(enregistrer|valider|sauvegarder)\b/.test(low)){
+      enregistrer();
+      showToast('🎤 Commande vocale : enregistrement en cours…');
+      return;
+    }
     const val = envParseNombreVocal(transcript);
     if(val!==null && !isNaN(val)){
       envSetVoice(field, val);
@@ -1560,12 +1624,7 @@ function envVoiceStart(field){
     } else {
       showToast('🎤 Valeur non comprise : «'+transcript+'» — réessayez');
     }
-  };
-  envRecognition.onerror = function(e){
-    if(e.error!=='no-speech') showToast('🎤 Erreur micro : '+e.error);
-  };
-  envRecognition.onend = function(){ if(btn) btn.classList.remove('listening'); };
-  try{ envRecognition.start(); }catch(e){}
+  }, {commandeEnregistrer:true});
 }
 function envSetVoice(field, val){
   envState[field] = String(val);
@@ -1573,29 +1632,20 @@ function envSetVoice(field, val){
   envUpdateDisplay(field);
 }
 function envVoiceStartText(textareaId, btnId){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ showToast('🎤 Reconnaissance vocale non disponible sur ce navigateur.'); return; }
-  if(envRecognition){ try{ envRecognition.onend=null; envRecognition.stop(); }catch(e){} }
-  const btn = document.getElementById(btnId);
   const ta = document.getElementById(textareaId);
-  envRecognition = new SR();
-  envRecognition.lang = 'fr-FR';
-  envRecognition.interimResults = false;
-  envRecognition.maxAlternatives = 1;
-  envRecognition.onstart = function(){ if(btn) btn.classList.add('listening'); };
-  envRecognition.onresult = function(e){
-    const transcript = e.results[0][0].transcript;
+  voxBasculer(btnId, function(transcript){
+    const low = transcript.toLowerCase();
+    if(/\b(enregistrer|valider|sauvegarder)\b/.test(low)){
+      enregistrer();
+      showToast('🎤 Commande vocale : enregistrement en cours…');
+      return;
+    }
     if(ta){
       const sep = (ta.value && !/[\s\n]$/.test(ta.value)) ? ' ' : '';
       ta.value = ta.value + sep + transcript;
     }
     showToast('🎤 Texte ajouté : «'+transcript+'»');
-  };
-  envRecognition.onerror = function(e){
-    if(e.error!=='no-speech') showToast('🎤 Erreur micro : '+e.error);
-  };
-  envRecognition.onend = function(){ if(btn) btn.classList.remove('listening'); };
-  try{ envRecognition.start(); }catch(e){}
+  }, {commandeEnregistrer:true});
 }
 function envParseNombreVocal(text){
   let t = String(text).toLowerCase().trim().replace(',', '.');
@@ -2464,24 +2514,7 @@ function colConfirmerSupp(){
 
 function colRafraichir(){ colRafraichirAlertes(); colRafraichirTableau(); }
 
-/* ══ SAISIE VOCALE — Coléoptères ══ */
-let colRecognition=null;
-function colVoixEcouter(btnRef, onResult){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ showToast('🎤 Reconnaissance vocale non disponible sur ce navigateur.'); return; }
-  if(colRecognition){ try{ colRecognition.onend=null; colRecognition.stop(); }catch(e){} }
-  const btn = (typeof btnRef==='string') ? document.getElementById(btnRef) : btnRef;
-  colRecognition = new SR();
-  colRecognition.lang = 'fr-FR';
-  colRecognition.interimResults = false;
-  colRecognition.maxAlternatives = 1;
-  colRecognition.onstart = function(){ if(btn) btn.classList.add('listening'); };
-  colRecognition.onresult = function(e){ onResult(e.results[0][0].transcript); };
-  colRecognition.onerror = function(e){ if(e.error!=='no-speech') showToast('🎤 Erreur micro : '+e.error); };
-  colRecognition.onend = function(){ if(btn) btn.classList.remove('listening'); };
-  try{ colRecognition.start(); }catch(e){}
-}
-
+/* ══ SAISIE VOCALE — Coléoptères (utilise le moteur générique voxBasculer) ══ */
 const COL_MOIS={janvier:1,'février':2,fevrier:2,mars:3,avril:4,mai:5,juin:6,juillet:7,'août':8,aout:8,septembre:9,octobre:10,novembre:11,'décembre':12,decembre:12};
 function colParseDateVocale(text){
   const low=String(text).toLowerCase();
@@ -2516,7 +2549,13 @@ function colParserLotVocal(transcript){
   return res;
 }
 function colDicterLot(){
-  colVoixEcouter('colFMicBtn', function(transcript){
+  voxBasculer('colFMicBtn', function(transcript){
+    const low=transcript.toLowerCase();
+    if(/\b(enregistrer|enregistre le lot|valide le lot|valider le lot)\b/.test(low)){
+      colEnregistrer();
+      showToast('🎤 Commande vocale : lot enregistré.');
+      return;
+    }
     const r=colParserLotVocal(transcript);
     const messages=[];
     if(r.grille){
@@ -2533,12 +2572,12 @@ function colDicterLot(){
     }
     if(r.poids!=null){ document.getElementById('colFPoids').value=r.poids; messages.push('Poids '+r.poids+' g'); }
     if(r.date){ document.getElementById('colFDateEntree').value=r.date; messages.push('Date '+colAffDate(r.date)); }
-    showToast(messages.length ? ('🎤 '+messages.join(' · ')+' — Vérifiez puis validez.') : ('🎤 Rien compris : «'+transcript+'» — réessayez'));
-  });
+    showToast(messages.length ? ('🎤 '+messages.join(' · ')+' — dites « enregistrer » pour valider.') : ('🎤 Rien compris : «'+transcript+'» — réessayez'));
+  }, {commandeEnregistrer:true});
 }
 
 function colDicterRecherche(){
-  colVoixEcouter('colRechMicBtn', function(transcript){
+  voxBasculer('colRechMicBtn', function(transcript){
     const low=transcript.toLowerCase().trim();
     let val=null,m;
     m=low.match(/grille\s+([a-zàâ]{1,2})/); if(m) val=m[1].toUpperCase();
@@ -2567,23 +2606,24 @@ function colEffacerRecherche(){
 }
 
 function colDicterBacChg(){
-  colVoixEcouter('colChgMicBtn', function(transcript){
+  voxBasculer('colChgMicBtn', function(transcript){
     const n=envParseNombreVocal(transcript);
-    if(n===null||isNaN(n)){ showToast('🎤 Numéro non compris : «'+transcript+'»'); return; }
+    if(n===null||isNaN(n)){ showToast('🎤 Numéro non compris : «'+transcript+'» — réessayez'); return; }
     const num=Math.round(n);
     const sel=document.getElementById('colModalChgBacSel');
     const opt=[...sel.options].find(o=>o.value===String(num));
-    if(opt){ sel.value=String(num); showToast('🎤 Bac '+num+' sélectionné'); }
-    else showToast('🎤 Bac '+num+' indisponible ou invalide');
+    if(opt){ sel.value=String(num); showToast('🎤 Bac '+num+' sélectionné.'); voxArreter(); }
+    else showToast('🎤 Bac '+num+' indisponible — réessayez.');
   });
 }
 
 function colVoixConfirmerAlerte(btnEl,id,cycle,type){
-  colVoixEcouter(btnEl, function(transcript){
+  voxBasculer(btnEl, function(transcript){
     const low=transcript.toLowerCase();
     if(/\b(oui|confirm[eé]|valide|ok|d'accord)\b/.test(low)){
       colConfirmerAlerte(id,cycle,type);
       showToast('🎤 Opération confirmée par la voix.');
+      voxArreter();
     } else {
       showToast('🎤 Non compris («'+transcript+'») — dites « oui » pour confirmer.');
     }
@@ -4980,7 +5020,7 @@ function larTravFmtDate(iso){
       <button class="btn-enreg" onclick="colEnregistrer()">✔ Enregistrer le lot</button>
       <div class="col-voice-row">
         <button class="mic-btn-full" id="colFMicBtn" onclick="colDicterLot()">🎤 Dicter le lot (grille, bac, poids)</button>
-        <div class="col-voice-hint">Ex. : « grille A bac 12 poids 300 grammes aujourd'hui »</div>
+        <div class="col-voice-hint">Touchez pour allumer/éteindre. Dites « grille A bac 12 poids 300 grammes », puis « enregistrer » pour valider.</div>
       </div>
     </div>
   </div>
