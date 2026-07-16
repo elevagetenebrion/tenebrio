@@ -354,6 +354,20 @@
 .col-modal-input{width:100%;padding:8px 10px;border:1px solid #e2e6ea;border-radius:6px;font-size:.9rem;margin-bottom:4px;background:#f9fafb;color:#1a1d23;}
 .col-empty-state{text-align:center;color:#6b7280;padding:32px;font-style:italic;}
 
+/* ══ Saisie vocale Coléoptères ══ */
+.col-voice-row{display:flex;flex-direction:column;gap:4px;margin-top:12px;}
+.col-voice-hint{font-size:.7rem;color:#8a94a6;font-style:italic;text-align:center;}
+.col-mic-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#fff;border:1.5px solid #cbd5e1;color:#374151;cursor:pointer;font-size:.9rem;flex-shrink:0;font-family:inherit;padding:0;}
+.col-mic-btn:active{transform:scale(.94);}
+.col-mic-btn.listening{background:#e53e3e;color:#fff;border-color:#e53e3e;animation:micPulse 1.1s infinite;}
+.alerte-item .col-mic-btn{width:26px;height:26px;font-size:.75rem;}
+.col-recherche-zone{max-width:1200px;margin:16px auto 0;padding:0 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.col-recherche-zone input{flex:1;min-width:180px;padding:8px 10px;border:1.5px solid #e2e6ea;border-radius:8px;font-size:.85rem;font-family:'Lato',sans-serif;}
+.col-recherche-zone .col-btn-clear{background:#e5e7eb;color:#374151;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:.8rem;cursor:pointer;font-family:'Lato',sans-serif;}
+#page-col tbody tr.col-row-highlight{background:#fef9c3 !important;outline:2px solid #f59e0b;outline-offset:-1px;}
+.col-modal-input-row{display:flex;gap:6px;align-items:center;}
+.col-modal-input-row select{flex:1;}
+
   
 /* ══ ŒUFS / TABLEAU DE PONTE ══ */
 #page-oeufs { background:#fff; color:#111; font-family:'Lato',sans-serif; min-height:100vh; padding:28px 16px 120px; }
@@ -2321,6 +2335,7 @@ function colRafraichirAlertes(){
       const i=document.createElement('div');
       i.className='alerte-item '+acls;
       var btn=document.createElement("button");btn.textContent="Confirmer";btn.dataset.id=it.lot.id;btn.dataset.cycle=it.cycle;btn.dataset.type=it.type;btn.className="col-alerte-btn";i.innerHTML=colAffDate(it.date)+' – '+it.label+'&nbsp;';i.appendChild(btn);
+      var mic=document.createElement("button");mic.type="button";mic.textContent="🎤";mic.title="Confirmer à la voix (dites « oui »)";mic.dataset.id=it.lot.id;mic.dataset.cycle=it.cycle;mic.dataset.type=it.type;mic.className="col-mic-btn col-alerte-mic";i.appendChild(mic);
       c.appendChild(i);
     });
   }
@@ -2388,6 +2403,9 @@ function colRafraichirTableau(){
   tbody.innerHTML='';
   sorted.forEach(lot=>{
     const tr=document.createElement('tr');
+    const bacsListe=[lot.c1?.bac,lot.c2?.bac,lot.c3?.bac,lot.c4?.bac].filter(Boolean).map(String);
+    tr.dataset.grille=lot.grille;
+    tr.dataset.bacs=bacsListe.join(',');
     function ac(date,done){ if(done)return 'col-ok-cell'; if(!date)return ''; if(date<=auj)return 'col-att-cell'; return ''; }
     let h='<td class="col-date-cell">'+colAffDate(lot.dateEntree)+'</td>';
     const d1s=colDateSecouage(lot,1),d1c=colDateChgBac(lot,1);
@@ -2421,6 +2439,7 @@ function colRafraichirTableau(){
     }else{h+='<td colspan="5" style="color:#d1d5db;font-size:.7rem;">—</td>';}
     tr.innerHTML=h; tbody.appendChild(tr);
   });
+  colFiltrerTableau();
 }
 
 let colModalSuppLotId=null,colModalSuppCycle=null;
@@ -2444,6 +2463,137 @@ function colConfirmerSupp(){
 }
 
 function colRafraichir(){ colRafraichirAlertes(); colRafraichirTableau(); }
+
+/* ══ SAISIE VOCALE — Coléoptères ══ */
+let colRecognition=null;
+function colVoixEcouter(btnRef, onResult){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ showToast('🎤 Reconnaissance vocale non disponible sur ce navigateur.'); return; }
+  if(colRecognition){ try{ colRecognition.onend=null; colRecognition.stop(); }catch(e){} }
+  const btn = (typeof btnRef==='string') ? document.getElementById(btnRef) : btnRef;
+  colRecognition = new SR();
+  colRecognition.lang = 'fr-FR';
+  colRecognition.interimResults = false;
+  colRecognition.maxAlternatives = 1;
+  colRecognition.onstart = function(){ if(btn) btn.classList.add('listening'); };
+  colRecognition.onresult = function(e){ onResult(e.results[0][0].transcript); };
+  colRecognition.onerror = function(e){ if(e.error!=='no-speech') showToast('🎤 Erreur micro : '+e.error); };
+  colRecognition.onend = function(){ if(btn) btn.classList.remove('listening'); };
+  try{ colRecognition.start(); }catch(e){}
+}
+
+const COL_MOIS={janvier:1,'février':2,fevrier:2,mars:3,avril:4,mai:5,juin:6,juillet:7,'août':8,aout:8,septembre:9,octobre:10,novembre:11,'décembre':12,decembre:12};
+function colParseDateVocale(text){
+  const low=String(text).toLowerCase();
+  if(/aujourd'?\s*hui/.test(low)) return colAujourdHui();
+  if(/\bhier\b/.test(low)) return colAddJours(colAujourdHui(),-1);
+  let m=low.match(/\b(\d{1,2})\s*[\/\-]\s*(\d{1,2})(?:\s*[\/\-]\s*(\d{2,4}))?\b/);
+  if(m){
+    const j=parseInt(m[1],10), mo=parseInt(m[2],10);
+    let an=m[3]?parseInt(m[3],10):new Date().getFullYear();
+    if(an<100) an+=2000;
+    if(j>=1&&j<=31&&mo>=1&&mo<=12) return an+'-'+String(mo).padStart(2,'0')+'-'+String(j).padStart(2,'0');
+  }
+  m=low.match(/\b(\d{1,2})\s+(janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre)\b(?:\s+(\d{4}))?/);
+  if(m){
+    const j=parseInt(m[1],10); const mo=COL_MOIS[m[2].replace('û','u')]||COL_MOIS[m[2]];
+    let an=m[3]?parseInt(m[3],10):new Date().getFullYear();
+    if(j>=1&&j<=31&&mo) return an+'-'+String(mo).padStart(2,'0')+'-'+String(j).padStart(2,'0');
+  }
+  return null;
+}
+function colParserLotVocal(transcript){
+  const low=String(transcript).toLowerCase();
+  const res={grille:null,bac:null,poids:null,date:null};
+  let m=low.match(/\bdouble\s+([a-zàâ])\b/);
+  if(m) res.grille=(m[1]+m[1]).toUpperCase();
+  else { m=low.match(/grille\s+([a-zàâ]{1,2})\b/); if(m) res.grille=m[1].toUpperCase(); }
+  m=low.match(/bac\s*(?:num[ée]ro|n[°o]?)?\s*(\d+)/);
+  if(m) res.bac=parseInt(m[1],10);
+  m=low.match(/poids\s*(?:de|:)?\s*(\d+(?:[.,]\d+)?)/) || low.match(/(\d+(?:[.,]\d+)?)\s*gramme/);
+  if(m) res.poids=parseFloat(m[1].replace(',','.'));
+  res.date=colParseDateVocale(low);
+  return res;
+}
+function colDicterLot(){
+  colVoixEcouter('colFMicBtn', function(transcript){
+    const r=colParserLotVocal(transcript);
+    const messages=[];
+    if(r.grille){
+      const selG=document.getElementById('colFGrille');
+      const opt=[...selG.options].find(o=>o.value===r.grille);
+      if(opt){ selG.value=r.grille; messages.push('Grille '+r.grille); }
+      else messages.push('⚠ Grille '+r.grille+' indisponible');
+    }
+    if(r.bac!=null){
+      const selB=document.getElementById('colFBac');
+      const opt=[...selB.options].find(o=>o.value===String(r.bac));
+      if(opt){ selB.value=String(r.bac); messages.push('Bac '+r.bac); }
+      else messages.push('⚠ Bac '+r.bac+' indisponible');
+    }
+    if(r.poids!=null){ document.getElementById('colFPoids').value=r.poids; messages.push('Poids '+r.poids+' g'); }
+    if(r.date){ document.getElementById('colFDateEntree').value=r.date; messages.push('Date '+colAffDate(r.date)); }
+    showToast(messages.length ? ('🎤 '+messages.join(' · ')+' — Vérifiez puis validez.') : ('🎤 Rien compris : «'+transcript+'» — réessayez'));
+  });
+}
+
+function colDicterRecherche(){
+  colVoixEcouter('colRechMicBtn', function(transcript){
+    const low=transcript.toLowerCase().trim();
+    let val=null,m;
+    m=low.match(/grille\s+([a-zàâ]{1,2})/); if(m) val=m[1].toUpperCase();
+    if(!val){ m=low.match(/bac\s*(?:num[ée]ro|n[°o]?)?\s*(\d+)/); if(m) val=m[1]; }
+    if(!val){ const n=envParseNombreVocal(low); if(n!==null && !isNaN(n)) val=String(n); }
+    if(!val){ m=low.match(/\b([a-zàâ]{1,2})\b/); if(m) val=m[1].toUpperCase(); }
+    if(val){ document.getElementById('colRecherche').value=val; colFiltrerTableau(); showToast('🎤 Recherche : «'+val+'»'); }
+    else showToast('🎤 Non compris : «'+transcript+'»');
+  });
+}
+function colFiltrerTableau(){
+  const q=(document.getElementById('colRecherche')?.value||'').trim().toLowerCase();
+  const rows=document.querySelectorAll('#colMainTbody tr[data-grille]');
+  rows.forEach(function(tr){
+    if(!q){ tr.style.display=''; tr.classList.remove('col-row-highlight'); return; }
+    const grille=(tr.dataset.grille||'').toLowerCase();
+    const bacs=(tr.dataset.bacs||'').split(',');
+    const match = grille.includes(q) || bacs.includes(q);
+    tr.style.display = match?'':'none';
+    tr.classList.toggle('col-row-highlight', match);
+  });
+}
+function colEffacerRecherche(){
+  const inp=document.getElementById('colRecherche'); if(inp) inp.value='';
+  colFiltrerTableau();
+}
+
+function colDicterBacChg(){
+  colVoixEcouter('colChgMicBtn', function(transcript){
+    const n=envParseNombreVocal(transcript);
+    if(n===null||isNaN(n)){ showToast('🎤 Numéro non compris : «'+transcript+'»'); return; }
+    const num=Math.round(n);
+    const sel=document.getElementById('colModalChgBacSel');
+    const opt=[...sel.options].find(o=>o.value===String(num));
+    if(opt){ sel.value=String(num); showToast('🎤 Bac '+num+' sélectionné'); }
+    else showToast('🎤 Bac '+num+' indisponible ou invalide');
+  });
+}
+
+function colVoixConfirmerAlerte(btnEl,id,cycle,type){
+  colVoixEcouter(btnEl, function(transcript){
+    const low=transcript.toLowerCase();
+    if(/\b(oui|confirm[eé]|valide|ok|d'accord)\b/.test(low)){
+      colConfirmerAlerte(id,cycle,type);
+      showToast('🎤 Opération confirmée par la voix.');
+    } else {
+      showToast('🎤 Non compris («'+transcript+'») — dites « oui » pour confirmer.');
+    }
+  });
+}
+document.addEventListener('click', function(e){
+  if(e.target.classList.contains('col-alerte-mic')){
+    colVoixConfirmerAlerte(e.target, e.target.dataset.id, parseInt(e.target.dataset.cycle), e.target.dataset.type);
+  }
+});
 
 function initColPage(){
   colLots = JSON.parse(localStorage.getItem(COL_CLE)||'[]');
@@ -4828,7 +4978,17 @@ function larTravFmtDate(iso){
         <div class="form-group"><label>Poids (g)</label><input type="text" id="colFPoids" readonly placeholder="Cliquer..." onclick="colOuvrirNumpad('colFPoids','Poids en grammes',1,99999)"/></div>
       </div>
       <button class="btn-enreg" onclick="colEnregistrer()">✔ Enregistrer le lot</button>
+      <div class="col-voice-row">
+        <button class="mic-btn-full" id="colFMicBtn" onclick="colDicterLot()">🎤 Dicter le lot (grille, bac, poids)</button>
+        <div class="col-voice-hint">Ex. : « grille A bac 12 poids 300 grammes aujourd'hui »</div>
+      </div>
     </div>
+  </div>
+
+  <div class="col-recherche-zone">
+    <input type="text" id="colRecherche" placeholder="🔍 Rechercher une grille ou un n° de bac (ex: A ou 12)" oninput="colFiltrerTableau()">
+    <button class="col-mic-btn" id="colRechMicBtn" onclick="colDicterRecherche()" title="Rechercher à la voix">🎤</button>
+    <button class="col-btn-clear" onclick="colEffacerRecherche()">✕ Effacer</button>
   </div>
 
   <div class="imprimer-bar">
@@ -4881,7 +5041,12 @@ function larTravFmtDate(iso){
       <p id="colModalChgTxt"></p>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
         <div><label style="font-size:.8rem;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Date du changement</label><input type="date" id="colModalChgDate" class="col-modal-input"/></div>
-        <div><label style="font-size:.8rem;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Nouveau N° Bac</label><select id="colModalChgBacSel" class="col-modal-input"></select></div>
+        <div><label style="font-size:.8rem;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Nouveau N° Bac</label>
+          <div class="col-modal-input-row">
+            <select id="colModalChgBacSel" class="col-modal-input"></select>
+            <button class="col-mic-btn" id="colChgMicBtn" onclick="colDicterBacChg()" title="Dicter le n° de bac">🎤</button>
+          </div>
+        </div>
       </div>
       <div class="col-modal-actions">
         <button style="background:#e5e7eb;color:#374151;padding:8px 20px;border:none;border-radius:6px;font-weight:700;cursor:pointer;" onclick="colFermerModalChg()">Annuler</button>
