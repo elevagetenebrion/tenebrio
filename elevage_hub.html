@@ -1523,8 +1523,21 @@ async function envSaveDB(forceOverwrite) {
   return fbSafeSave(ENV_KEY, envDb);
 }
 async function envSyncFromCloud() {
-    const cloudData = await fbSafeLoad(ENV_KEY, null);
-  if (cloudData !== null) { envDb = cloudData; localStorage.setItem(ENV_KEY, JSON.stringify(cloudData)); }
+  // Charge d'abord la base locale (si pas déjà fait) pour ne rien perdre lors de la fusion
+  if (!envDb || Object.keys(envDb).length === 0) envDb = envLoadDB();
+  const cloudData = await fbSafeLoad(ENV_KEY, null);
+  if (cloudData !== null) {
+    for (const day in cloudData) {
+      if (!envDb[day]) envDb[day] = [];
+      const existingTs = new Set(envDb[day].map(function(e){ return e.ts; }));
+      (cloudData[day] || []).forEach(function(e) {
+        if (!existingTs.has(e.ts)) envDb[day].push(e);
+      });
+      envDb[day].sort(function(a,b){ return (a.ts||'').localeCompare(b.ts||''); });
+    }
+    localStorage.setItem(ENV_KEY, JSON.stringify(envDb));
+    fbSafeSave(ENV_KEY, envDb); // repousse la fusion pour réconcilier avec l'autre appareil
+  }
 }
 function envTodayKey() { return new Date().toISOString().slice(0,10); }
 function envMonthKey() { return new Date().toISOString().slice(0,7); }
