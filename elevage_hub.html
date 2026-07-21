@@ -1499,9 +1499,28 @@ let envClockTimer = null;
 function envLoadDB() {
   try { return JSON.parse(localStorage.getItem(ENV_KEY)) || {}; } catch { return {}; }
 }
-function envSaveDB() {
+async function envSaveDB(forceOverwrite) {
+  // Fusionne avec les données cloud avant d'écrire, pour ne jamais effacer
+  // une entrée enregistrée entre-temps par un autre appareil (ex: technicien).
+  if (!forceOverwrite) {
+    try {
+      const cloudData = await fbSafeLoad(ENV_KEY, null);
+      if (cloudData) {
+        for (const day in cloudData) {
+          if (!envDb[day]) envDb[day] = [];
+          const existingTs = new Set(envDb[day].map(function(e){ return e.ts; }));
+          (cloudData[day] || []).forEach(function(e) {
+            if (!existingTs.has(e.ts)) envDb[day].push(e);
+          });
+          envDb[day].sort(function(a,b){ return (a.ts||'').localeCompare(b.ts||''); });
+        }
+      }
+    } catch (err) {
+      console.error('envSaveDB: échec de la fusion cloud, sauvegarde locale conservée', err);
+    }
+  }
   localStorage.setItem(ENV_KEY, JSON.stringify(envDb));
-  fbSafeSave(ENV_KEY, envDb);
+  return fbSafeSave(ENV_KEY, envDb);
 }
 async function envSyncFromCloud() {
     const cloudData = await fbSafeLoad(ENV_KEY, null);
@@ -1705,7 +1724,7 @@ function envUpdateDisplay(field) {
   if (!isNaN(tv) && !isNaN(hv)) genObservations(tv, hv);
 }
 
-function enregistrer() {
+async function enregistrer() {
   const temp  = parseFloat(envState.temp);
   const hygro = parseFloat(envState.hygro);
   if (isNaN(temp)||isNaN(hygro)) { showToast('Veuillez saisir température et hygrométrie.'); return; }
@@ -1721,7 +1740,7 @@ function enregistrer() {
   const dk = envTodayKey();
   if (!envDb[dk]) envDb[dk] = [];
   envDb[dk].push(entry);
-  envSaveDB();
+  await envSaveDB();
   // Vider la solution après enregistrement (elle est maintenant dans le tableau)
   const solutionElClear = document.getElementById('envSolutionApportee');
   if(solutionElClear) solutionElClear.value = '';
@@ -1862,7 +1881,7 @@ function envViderToutesLesDonnees(){
   if(!confirm('⚠️ Ceci va supprimer TOUTES les données Environnement (température, hygrométrie, historique) — local + cloud partagé. Action irréversible. Continuer ?')) return;
   if(!confirm('Confirmation finale : effacer toutes les données Environnement ?')) return;
   envDb = {};
-  envSaveDB();
+  envSaveDB(true); // écrasement volontaire, pas de fusion
   envRenderAll();
   const t=document.getElementById('toast');
   if(t){ t.textContent='Données Environnement effacées.'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2500); }
