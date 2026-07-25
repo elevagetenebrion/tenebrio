@@ -1680,6 +1680,7 @@ function voxDemarrerVeille(){
         voxEnCommande=true;
         voxIndicateurCommande(true);
         voxDireOui();
+        showToast('🎙️ Ténébrio — je vous écoute…');
         clearTimeout(voxCommandeTimer);
         voxCommandeTimer=setTimeout(function(){
           voxEnCommande=false;
@@ -1761,15 +1762,23 @@ function voxCommandesNymphes(low){
 
 /* Dispatcher de commande vocale (mode "Ténébrio") */
 function voxTraiterCommande(transcript){
-  const low = transcript.toLowerCase().trim();
+  const low = transcript.toLowerCase().trim().replace(/[.!?]+$/,'');
 
-  // 1) Navigation — exige un verbe d'appel pour éviter les faux positifs (ex: "vers" = préposition)
+  // 1) Navigation avec verbe explicite ("va sur X", "ouvre X"...)
   const navMatch = low.match(/\b(?:va(?:s)? sur|va(?:s)? [aà]|ouvre|affiche|montre|passe (?:sur|[aà]|au|aux)|page)\s+(.+)/);
   if(navMatch){
     const cible = navMatch[1];
     const page = VOX_PAGES.find(function(p){ return p.mots.some(function(m){ return cible.indexOf(m)!==-1; }); });
     if(page){ showPage(page.id); showToast('🎙️ Navigation : '+page.label); return; }
   }
+
+  // 1bis) Navigation directe : l'utilisateur a juste dit le nom de la page, sans verbe
+  // (on exige une correspondance exacte du mot entier — pas une simple sous-chaîne —
+  //  pour éviter qu'un "vers" isolé dans une autre phrase ne déclenche une navigation).
+  const pageDirecte = VOX_PAGES.find(function(p){
+    return p.mots.some(function(m){ return low===m; });
+  });
+  if(pageDirecte){ showPage(pageDirecte.id); showToast('🎙️ Navigation : '+pageDirecte.label); return; }
 
   // 2) Commandes spécifiques à la page Nymphes
   if(voxCommandesNymphes(low)) return;
@@ -1783,7 +1792,7 @@ function voxTraiterCommande(transcript){
   // 4) Dictée de valeur vers le pavé/champ actif
   if(voxDicterValeur(transcript)) return;
 
-  showToast('🎙️ Commande non reconnue : «'+transcript+'»');
+  showToast('🎙️ Compris : «'+transcript+'» — commande non reconnue.');
 }
 
 /* Clique/valide l'élément pertinent selon l'overlay ouvert, sinon action de sauvegarde par défaut */
