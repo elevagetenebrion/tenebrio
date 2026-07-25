@@ -810,6 +810,18 @@
   </div>
 </div>
 
+<!-- Journal vocal persistant (diagnostic mains-libres) -->
+<div id="voxJournalPanel" style="display:none;position:fixed;left:8px;right:8px;bottom:8px;max-width:520px;margin:0 auto;background:rgba(20,20,20,.95);color:#e8e8e8;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:9999;font-family:'IBM Plex Mono',Menlo,Consolas,monospace;font-size:.72rem;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #444;">
+    <span style="font-weight:700;">🎙️ Journal vocal</span>
+    <div style="display:flex;gap:8px;">
+      <button onclick="voxJournalEffacer()" style="background:#333;color:#ccc;border:none;border-radius:5px;padding:3px 8px;font-size:.68rem;cursor:pointer;">Effacer</button>
+      <button onclick="voxJournalFermer()" style="background:#333;color:#ccc;border:none;border-radius:5px;padding:3px 8px;font-size:.68rem;cursor:pointer;">✕</button>
+    </div>
+  </div>
+  <div id="voxJournalListe" style="max-height:220px;overflow-y:auto;padding:6px 10px;"></div>
+</div>
+
 <!-- ACCUEIL -->
 <div id="page-accueil" class="page active">
   <h1>Bienvenus dans l'élevage<br>de Ténébrio Molitor</h1>
@@ -1655,11 +1667,36 @@ function voxDireOui(){
   }catch(e){}
 }
 
+/* Journal vocal persistant : contrairement au toast (qui disparaît en 2.5s et peut être
+   écrasé par le message suivant), ce panneau garde un historique lisible de tout ce que
+   le moteur vocal a entendu et fait — utile pour diagnostiquer sur le terrain. */
+function voxJournal(msg){
+  showToast(msg);
+  const panel = document.getElementById('voxJournalPanel');
+  const liste = document.getElementById('voxJournalListe');
+  if(!panel || !liste) return;
+  panel.style.display='block';
+  const heure = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const ligne = document.createElement('div');
+  ligne.style.cssText='padding:3px 0;border-bottom:1px solid #333;word-break:break-word;';
+  ligne.textContent = heure+' — '+msg;
+  liste.insertBefore(ligne, liste.firstChild);
+  while(liste.children.length > 20) liste.removeChild(liste.lastChild);
+}
+function voxJournalEffacer(){
+  const liste = document.getElementById('voxJournalListe');
+  if(liste) liste.innerHTML='';
+}
+function voxJournalFermer(){
+  const panel = document.getElementById('voxJournalPanel');
+  if(panel) panel.style.display='none';
+}
+
 function voxDemarrerVeille(){
   if(!voxVeilleSouhaitee) return;
   if(voxActifBtn) return; // une dictée manuelle est en cours, ne pas interférer
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ showToast('🎙️ Reconnaissance vocale non disponible.'); voxVeilleSouhaitee=false; return; }
+  if(!SR){ voxJournal('🎙️ Reconnaissance vocale non disponible.'); voxVeilleSouhaitee=false; return; }
   try{ if(voxRecognition){ voxRecognition.onend=null; voxRecognition.onresult=null; voxRecognition.onerror=null; voxRecognition.stop(); } }catch(e){}
   voxErreurFatale=false;
   const rec = new SR();
@@ -1681,7 +1718,7 @@ function voxDemarrerVeille(){
         voxEnCommande=true;
         voxIndicateurCommande(true);
         voxDireOui();
-        showToast('🎙️ Ténébrio — je vous écoute…');
+        voxJournal('🎙️ Ténébrio — je vous écoute…');
         clearTimeout(voxCommandeTimer);
         voxCommandeTimer=setTimeout(function(){
           voxEnCommande=false;
@@ -1690,14 +1727,14 @@ function voxDemarrerVeille(){
       } else {
         // Diagnostic : le micro a bien entendu quelque chose, mais ça ne correspond pas
         // au mot d'appel. Affiché pour repérer un souci de reconnaissance/accent.
-        showToast('🎙️ (veille) entendu : «'+transcript+'»');
+        voxJournal('🎙️ (veille) entendu : «'+transcript+'»');
       }
     }
   };
   rec.onerror=function(e){
     if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){
       voxVeilleSouhaitee=false; voxIndicateurVeille(false);
-      showToast('🎙️ Micro refusé — veille vocale désactivée.');
+      voxJournal('🎙️ Micro refusé — veille vocale désactivée.');
     }
     // les autres erreurs (no-speech, network, aborted…) sont silencieuses : onend relance.
   };
@@ -1731,13 +1768,13 @@ function voxBasculerVeille(){
     voxArreterVeille();
     localStorage.setItem('vox_veille_pref','0');
     if(btn){ btn.classList.remove('listening'); voxAppliquerLibelle(btn, false); }
-    showToast('🎙️ Écoute mains-libres désactivée.');
+    voxJournal('🎙️ Écoute mains-libres désactivée.');
   } else {
     voxVeilleSouhaitee=true;
     localStorage.setItem('vox_veille_pref','1');
     voxDemarrerVeille();
     if(btn){ btn.classList.add('listening'); voxAppliquerLibelle(btn, true); }
-    showToast('🎙️ Écoute mains-libres activée — dites « Ténébrio » pour donner un ordre.');
+    voxJournal('🎙️ Écoute mains-libres activée — dites « Ténébrio » pour donner un ordre.');
   }
 }
 
@@ -1748,25 +1785,25 @@ function voxCommandesNymphes(low){
 
   if(/\btravaux\b/.test(low)){
     const b=document.getElementById('nymBtnTravauxVers08');
-    if(b){ b.click(); showToast('🎙️ Travaux sur les bacs (Vers 08).'); return true; }
+    if(b){ b.click(); voxJournal('🎙️ Travaux sur les bacs (Vers 08).'); return true; }
   }
   if(/\bfusion(ner)?\b/.test(low)){
     const b=document.getElementById('nymBtnFusionner');
-    if(b){ b.click(); showToast('🎙️ Fusionner.'); return true; }
+    if(b){ b.click(); voxJournal('🎙️ Fusionner.'); return true; }
   }
   if(/\btrier\b/.test(low)){
     const b=document.getElementById('nymBtnTrier');
-    if(b){ b.click(); showToast('🎙️ Trier les nymphes.'); return true; }
+    if(b){ b.click(); voxJournal('🎙️ Trier les nymphes.'); return true; }
   }
   if(/\bmorts?\b/.test(low)){
     const champ=document.getElementById('nymFTriMortsAffiche');
-    if(champ && champ.offsetParent!==null){ champ.click(); showToast('🎙️ Quantité de morts.'); return true; }
-    showToast('🎙️ Ouvrez d\'abord « Trier les nymphes » pour saisir le poids des morts.');
+    if(champ && champ.offsetParent!==null){ champ.click(); voxJournal('🎙️ Quantité de morts.'); return true; }
+    voxJournal('🎙️ Ouvrez d\'abord « Trier les nymphes » pour saisir le poids des morts.');
     return true;
   }
   if(/\bajout(er|e)?\b.*\bbac\b|\bbac\b.*\bajout/.test(low)){
     const b=document.getElementById('nymBtnAjouter');
-    if(b){ b.click(); showToast('🎙️ Ajouter un bac.'); return true; }
+    if(b){ b.click(); voxJournal('🎙️ Ajouter un bac.'); return true; }
   }
   return false;
 }
@@ -1780,7 +1817,7 @@ function voxTraiterCommande(transcript){
   if(navMatch){
     const cible = navMatch[1];
     const page = VOX_PAGES.find(function(p){ return p.mots.some(function(m){ return cible.indexOf(m)!==-1; }); });
-    if(page){ showPage(page.id); showToast('🎙️ Navigation : '+page.label); return; }
+    if(page){ showPage(page.id); voxJournal('🎙️ Navigation : '+page.label); return; }
   }
 
   // 1bis) Navigation directe : l'utilisateur a juste dit le nom de la page, sans verbe
@@ -1789,7 +1826,7 @@ function voxTraiterCommande(transcript){
   const pageDirecte = VOX_PAGES.find(function(p){
     return p.mots.some(function(m){ return low===m; });
   });
-  if(pageDirecte){ showPage(pageDirecte.id); showToast('🎙️ Navigation : '+pageDirecte.label); return; }
+  if(pageDirecte){ showPage(pageDirecte.id); voxJournal('🎙️ Navigation : '+pageDirecte.label); return; }
 
   // 2) Commandes spécifiques à la page Nymphes
   if(voxCommandesNymphes(low)) return;
@@ -1803,46 +1840,46 @@ function voxTraiterCommande(transcript){
   // 4) Dictée de valeur vers le pavé/champ actif
   if(voxDicterValeur(transcript)) return;
 
-  showToast('🎙️ Compris : «'+transcript+'» — commande non reconnue.');
+  voxJournal('🎙️ Compris : «'+transcript+'» — commande non reconnue.');
 }
 
 /* Clique/valide l'élément pertinent selon l'overlay ouvert, sinon action de sauvegarde par défaut */
 function voxValiderContexte(){
   if(document.getElementById('stkNumpadOverlay') && document.getElementById('stkNumpadOverlay').classList.contains('open')){
-    stkNumpadOk(); showToast('🎙️ Validé.'); return true;
+    stkNumpadOk(); voxJournal('🎙️ Validé.'); return true;
   }
   if(document.getElementById('colNumpadOverlay') && document.getElementById('colNumpadOverlay').classList.contains('open')){
-    colNumpadOk(); showToast('🎙️ Validé.'); return true;
+    colNumpadOk(); voxJournal('🎙️ Validé.'); return true;
   }
   if(document.getElementById('colModalChgBac') && document.getElementById('colModalChgBac').classList.contains('open')){
-    var b=document.getElementById('colBtnConfirmChg'); if(b) b.click(); showToast('🎙️ Validé.'); return true;
+    var b=document.getElementById('colBtnConfirmChg'); if(b) b.click(); voxJournal('🎙️ Validé.'); return true;
   }
   if(document.getElementById('colModalSupp') && document.getElementById('colModalSupp').classList.contains('open')){
-    var b=document.getElementById('colBtnConfirmSupp'); if(b) b.click(); showToast('🎙️ Validé.'); return true;
+    var b=document.getElementById('colBtnConfirmSupp'); if(b) b.click(); voxJournal('🎙️ Validé.'); return true;
   }
   if(document.getElementById('colModalEffacer') && document.getElementById('colModalEffacer').classList.contains('open')){
-    var b=document.getElementById('colBtnConfirmEffacer'); if(b) b.click(); showToast('🎙️ Validé.'); return true;
+    var b=document.getElementById('colBtnConfirmEffacer'); if(b) b.click(); voxJournal('🎙️ Validé.'); return true;
   }
   if(document.getElementById('ponteModalSortie') && document.getElementById('ponteModalSortie').classList.contains('open')){
-    ponteConfirmSortie(); showToast('🎙️ Validé.'); return true;
+    ponteConfirmSortie(); voxJournal('🎙️ Validé.'); return true;
   }
   if(document.getElementById('ponteModalFusion') && document.getElementById('ponteModalFusion').classList.contains('open')){
-    ponteConfirmFusion(); showToast('🎙️ Validé.'); return true;
+    ponteConfirmFusion(); voxJournal('🎙️ Validé.'); return true;
   }
   if(document.getElementById('ponteModalReset') && document.getElementById('ponteModalReset').classList.contains('open')){
-    ponteConfirmReset(); showToast('🎙️ Validé.'); return true;
+    ponteConfirmReset(); voxJournal('🎙️ Validé.'); return true;
   }
   if(document.getElementById('nymKeypadOverlay') && document.getElementById('nymKeypadOverlay').classList.contains('visible')){
-    var b=document.getElementById('nymKpValider'); if(b) b.click(); showToast('🎙️ Validé.'); return true;
+    var b=document.getElementById('nymKpValider'); if(b) b.click(); voxJournal('🎙️ Validé.'); return true;
   }
   if(document.getElementById('larKpadOverlay') && document.getElementById('larKpadOverlay').classList.contains('open')){
-    larCommitKpad(); showToast('🎙️ Validé.'); return true;
+    larCommitKpad(); voxJournal('🎙️ Validé.'); return true;
   }
   const pageActive=document.querySelector('.page.active');
   if(pageActive && pageActive.id==='page-env' && typeof enregistrer==='function'){
-    enregistrer(); showToast('🎙️ Environnement enregistré.'); return true;
+    enregistrer(); voxJournal('🎙️ Environnement enregistré.'); return true;
   }
-  showToast('🎙️ Rien à valider ici.');
+  voxJournal('🎙️ Rien à valider ici.');
   return false;
 }
 
@@ -1853,14 +1890,14 @@ function voxDicterValeur(transcript){
     const v=envParseNombreVocal(transcript);
     if(v===null) return false;
     document.getElementById('stkNumpadDisplay').textContent=String(v);
-    showToast('🎙️ Valeur : '+v); return true;
+    voxJournal('🎙️ Valeur : '+v); return true;
   }
   const d2=document.getElementById('colNumpadOverlay');
   if(d2 && d2.classList.contains('open')){
     const v=envParseNombreVocal(transcript);
     if(v===null) return false;
     document.getElementById('colNumpadDisplay').textContent=String(Math.round(v));
-    showToast('🎙️ Valeur : '+Math.round(v)); return true;
+    voxJournal('🎙️ Valeur : '+Math.round(v)); return true;
   }
   const d3=document.getElementById('nymKeypadOverlay');
   if(d3 && d3.classList.contains('visible')){
@@ -1868,7 +1905,7 @@ function voxDicterValeur(transcript){
     if(v===null) return false;
     nymKpValeur=String(v);
     document.getElementById('nymKeypadDisplay').textContent=nymKpValeur;
-    showToast('🎙️ Valeur : '+v); return true;
+    voxJournal('🎙️ Valeur : '+v); return true;
   }
   const d4=document.getElementById('larKpadOverlay');
   if(d4 && d4.classList.contains('open')){
@@ -1876,18 +1913,18 @@ function voxDicterValeur(transcript){
     if(v===null) return false;
     larKVal=String(v);
     larRefreshKDisp();
-    showToast('🎙️ Valeur : '+v); return true;
+    voxJournal('🎙️ Valeur : '+v); return true;
   }
   const pageActive=document.querySelector('.page.active');
   if(pageActive && pageActive.id==='page-env'){
     const low=transcript.toLowerCase();
     if(/temp[ée]rature/.test(low)){
       const v=envParseNombreVocal(low.replace(/temp[ée]rature/,''));
-      if(v!==null){ envSetVoice('temp', v); showToast('🎙️ Température : '+v); return true; }
+      if(v!==null){ envSetVoice('temp', v); voxJournal('🎙️ Température : '+v); return true; }
     }
     if(/hygrom[ée]trie|humidit[ée]/.test(low)){
       const v=envParseNombreVocal(low.replace(/hygrom[ée]trie|humidit[ée]/,''));
-      if(v!==null){ envSetVoice('hygro', v); showToast('🎙️ Hygrométrie : '+v); return true; }
+      if(v!==null){ envSetVoice('hygro', v); voxJournal('🎙️ Hygrométrie : '+v); return true; }
     }
   }
   return false;
