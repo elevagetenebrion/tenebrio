@@ -1621,7 +1621,7 @@ function voxBasculer(btnRef, onPhrase, options){
 let voxVeilleSouhaitee = false;   // true = mode mains-libres activé par l'utilisateur
 let voxEnCommande = false;        // true = mot d'appel détecté, on attend la commande
 let voxCommandeTimer = null;
-const VOX_MOT_APPEL = /\bt[ée]n[ée]?brio\b/;
+const VOX_MOT_APPEL = /t[ée]n[ée]?bri/;
 
 const VOX_PAGES = [
   {id:'page-accueil', label:'Accueil',        mots:['accueil']},
@@ -1662,12 +1662,13 @@ function voxDemarrerVeille(){
   if(!SR){ showToast('🎙️ Reconnaissance vocale non disponible.'); voxVeilleSouhaitee=false; return; }
   try{ if(voxRecognition){ voxRecognition.onend=null; voxRecognition.onresult=null; voxRecognition.onerror=null; voxRecognition.stop(); } }catch(e){}
   voxErreurFatale=false;
-  voxRecognition = new SR();
-  voxRecognition.lang='fr-FR';
-  voxRecognition.continuous=true;
-  voxRecognition.interimResults=false;
-  voxRecognition.maxAlternatives=1;
-  voxRecognition.onresult=function(e){
+  const rec = new SR();
+  voxRecognition = rec;
+  rec.lang='fr-FR';
+  rec.continuous=true;
+  rec.interimResults=false;
+  rec.maxAlternatives=1;
+  rec.onresult=function(e){
     for(let i=e.resultIndex;i<e.results.length;i++){
       if(!e.results[i].isFinal) continue;
       const transcript=e.results[i][0].transcript;
@@ -1686,21 +1687,31 @@ function voxDemarrerVeille(){
           voxEnCommande=false;
           voxIndicateurCommande(false);
         }, 8000);
+      } else {
+        // Diagnostic : le micro a bien entendu quelque chose, mais ça ne correspond pas
+        // au mot d'appel. Affiché pour repérer un souci de reconnaissance/accent.
+        showToast('🎙️ (veille) entendu : «'+transcript+'»');
       }
     }
   };
-  voxRecognition.onerror=function(e){
+  rec.onerror=function(e){
     if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){
       voxVeilleSouhaitee=false; voxIndicateurVeille(false);
       showToast('🎙️ Micro refusé — veille vocale désactivée.');
     }
+    // les autres erreurs (no-speech, network, aborted…) sont silencieuses : onend relance.
   };
-  voxRecognition.onend=function(){
+  rec.onend=function(){
+    if(voxRecognition!==rec) return; // un nouveau cycle d'écoute a déjà démarré ailleurs
     if(voxVeilleSouhaitee && !voxActifBtn){
-      try{ voxRecognition.start(); return; }catch(e){}
+      // On recrée systématiquement une instance neuve plutôt que de relancer celle-ci :
+      // sur Android/Chrome, réutiliser .start() juste après un arrêt lève souvent une
+      // erreur silencieuse qui tuait la veille sans aucun signe visible.
+      setTimeout(voxDemarrerVeille, 300);
     }
   };
-  try{ voxRecognition.start(); voxIndicateurVeille(true); }catch(e){}
+  try{ rec.start(); voxIndicateurVeille(true); }
+  catch(e){ if(voxVeilleSouhaitee && !voxActifBtn) setTimeout(voxDemarrerVeille, 300); }
 }
 
 function voxArreterVeille(){
