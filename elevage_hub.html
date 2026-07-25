@@ -858,6 +858,40 @@
     </button>
   </div>
   <button class="mic-btn-full" id="voxVeilleBtn" onclick="voxBasculerVeille()" style="max-width:420px;margin:14px auto 0;">🎙️ Activer l'écoute mains-libres (« Ténébrio »)</button>
+  <button onclick="voxConfigOuvrir()" style="display:block;max-width:420px;margin:8px auto 0;background:#455a75;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.85rem;cursor:pointer;">⚙️ Configurer les mots reconnus</button>
+
+  <!-- Configuration des mots vocaux personnalisés -->
+  <div id="voxConfigOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;max-width:480px;width:92%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #e0e0e0;">
+        <span style="font-weight:700;">⚙️ Mots reconnus par la voix</span>
+        <button onclick="voxConfigFermer()" style="border:none;background:none;font-size:1.1rem;cursor:pointer;">✕</button>
+      </div>
+      <div style="padding:14px 16px;overflow-y:auto;">
+        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:4px;">Action déclenchée</label>
+        <select id="voxConfigCible" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:10px;">
+          <option value="page-accueil">Aller à : Accueil</option>
+          <option value="page-env">Aller à : Environnement</option>
+          <option value="page-col">Aller à : Coléoptères</option>
+          <option value="page-oeufs">Aller à : Œufs</option>
+          <option value="page-nymphes">Aller à : Nymphes</option>
+          <option value="page-larves">Aller à : Vers</option>
+          <option value="page-stocks">Aller à : Stocks</option>
+          <option value="valider">Valider / Confirmer</option>
+          <option value="nym-ajouter">Nymphes : Ajouter un bac</option>
+          <option value="nym-fusionner">Nymphes : Fusionner</option>
+          <option value="nym-trier">Nymphes : Trier les nymphes</option>
+          <option value="nym-morts">Nymphes : Quantité de morts</option>
+          <option value="nym-travaux">Nymphes : Travaux sur les bacs</option>
+        </select>
+        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:4px;">Mot(s) entendu(s) — sépare par une virgule si plusieurs</label>
+        <input type="text" id="voxConfigPhrase" placeholder="ex: les zeufs, le zeuf" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:6px;box-sizing:border-box;">
+        <button onclick="voxConfigRemplirDernier()" style="background:#eee;border:none;border-radius:6px;padding:6px 10px;font-size:.75rem;cursor:pointer;margin-bottom:10px;">↺ Remplir avec le dernier mot entendu</button>
+        <button onclick="voxConfigAjouter()" style="display:block;width:100%;background:#2563a8;color:#fff;border:none;border-radius:6px;padding:10px;font-weight:700;cursor:pointer;margin-bottom:14px;">+ Ajouter</button>
+        <div id="voxConfigListe"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- STOCKS (module consolidé : Son de blé / Levure / Farine-Poids cassé / Légumes) -->
@@ -1639,11 +1673,111 @@ const VOX_PAGES = [
   {id:'page-accueil', label:'Accueil',        mots:['accueil']},
   {id:'page-stocks',  label:'Stocks',         mots:['stocks','stock']},
   {id:'page-env',     label:'Environnement',  mots:['environnement','climat']},
-  {id:'page-col',     label:'Coléoptères',    mots:['coléoptères','coleopteres','coléo','coleo']},
-  {id:'page-oeufs',   label:'Œufs / Ponte',   mots:['œufs','oeufs','ponte']},
+  {id:'page-col',     label:'Coléoptères',    mots:['coleopteres','coleoptere','coleo']},
+  {id:'page-oeufs',   label:'Œufs / Ponte',   mots:['oeufs','oeuf','ponte']},
   {id:'page-nymphes', label:'Nymphes',        mots:['nymphes','nymphe']},
-  {id:'page-larves',  label:'Vers',           mots:['vers','larves']}
+  {id:'page-larves',  label:'Vers',           mots:['vers','larves','larve']}
 ];
+
+/* Normalise un texte : minuscules, sans accents (utile car les mots accentués comme
+   "œufs" ou "coléoptères" posent problème avec les frontières de mots \b en JS). */
+function voxNormaliser(txt){
+  return String(txt).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/œ/gi,'oe').replace(/æ/gi,'ae').toLowerCase();
+}
+
+/* Cherche une page correspondant à un ou plusieurs mots du texte donné, en comparant
+   mot à mot (donc "les œufs", "coléoptère" au singulier, "va sur les vers" fonctionnent
+   tous, pas seulement une correspondance exacte de toute la phrase). */
+function voxTrouverPage(texte){
+  // Alias personnalisés enregistrés par l'utilisateur : priorité absolue.
+  for(const p of VOX_PAGES){
+    if(voxAliasCorrespond(texte, p.id)) return p;
+  }
+  const mots = voxNormaliser(texte).split(/[^a-z0-9]+/).filter(Boolean);
+  return VOX_PAGES.find(function(p){
+    return p.mots.some(function(m){ return mots.indexOf(m)!==-1; });
+  });
+}
+
+/* ══ Configuration des mots vocaux personnalisés ══
+   Permet à l'utilisateur d'enregistrer lui-même les mots que le moteur a réellement
+   entendus (visibles dans le journal vocal) et de les associer à l'action voulue,
+   sans avoir à deviner des variantes dans le code. Stocké en local + cloud. */
+let VOX_ALIAS = {};       // { cibleId: ['phrase normalisée', ...] }
+let voxDernierEntendu = ''; // dernier texte non reconnu, pour pré-remplir le formulaire
+
+const VOX_LABELS = {
+  'page-accueil':'Aller à : Accueil', 'page-env':'Aller à : Environnement', 'page-col':'Aller à : Coléoptères',
+  'page-oeufs':'Aller à : Œufs', 'page-nymphes':'Aller à : Nymphes', 'page-larves':'Aller à : Vers', 'page-stocks':'Aller à : Stocks',
+  'valider':'Valider / Confirmer',
+  'nym-ajouter':'Nymphes : Ajouter un bac', 'nym-fusionner':'Nymphes : Fusionner',
+  'nym-trier':'Nymphes : Trier les nymphes', 'nym-morts':'Nymphes : Quantité de morts',
+  'nym-travaux':'Nymphes : Travaux sur les bacs'
+};
+
+function voxAliasCorrespond(texte, cible){
+  const liste = VOX_ALIAS[cible];
+  if(!liste || !liste.length) return false;
+  const norm = voxNormaliser(texte);
+  return liste.some(function(p){ return p && norm.indexOf(p)!==-1; });
+}
+
+function voxConfigCharger(){
+  try{ const brut = localStorage.getItem('vox_alias_v1'); VOX_ALIAS = brut ? JSON.parse(brut) : {}; }
+  catch(e){ VOX_ALIAS = {}; }
+}
+function voxConfigSauvegarder(){
+  localStorage.setItem('vox_alias_v1', JSON.stringify(VOX_ALIAS));
+  if(typeof fbSafeSave==='function') fbSafeSave('vox_alias_v1', VOX_ALIAS);
+}
+async function voxConfigSyncCloud(){
+  if(typeof fbSafeLoad!=='function') return;
+  VOX_ALIAS = await fbSafeLoad('vox_alias_v1', VOX_ALIAS);
+  voxConfigAfficherListe();
+}
+
+function voxConfigOuvrir(){
+  document.getElementById('voxConfigOverlay').style.display='flex';
+  voxConfigAfficherListe();
+}
+function voxConfigFermer(){
+  document.getElementById('voxConfigOverlay').style.display='none';
+}
+function voxConfigRemplirDernier(){
+  document.getElementById('voxConfigPhrase').value = voxDernierEntendu;
+}
+function voxConfigAjouter(){
+  const cible = document.getElementById('voxConfigCible').value;
+  const brut = document.getElementById('voxConfigPhrase').value;
+  if(!brut.trim()) return;
+  const phrases = brut.split(',').map(function(s){ return voxNormaliser(s.trim()); }).filter(Boolean);
+  if(!VOX_ALIAS[cible]) VOX_ALIAS[cible]=[];
+  phrases.forEach(function(p){ if(VOX_ALIAS[cible].indexOf(p)===-1) VOX_ALIAS[cible].push(p); });
+  voxConfigSauvegarder();
+  document.getElementById('voxConfigPhrase').value='';
+  voxConfigAfficherListe();
+  voxJournal('🎙️ Mot enregistré : «'+brut+'» → '+(VOX_LABELS[cible]||cible));
+}
+function voxConfigSupprimer(cible, phrase){
+  if(!VOX_ALIAS[cible]) return;
+  VOX_ALIAS[cible] = VOX_ALIAS[cible].filter(function(p){ return p!==phrase; });
+  voxConfigSauvegarder();
+  voxConfigAfficherListe();
+}
+function voxConfigAfficherListe(){
+  const cont = document.getElementById('voxConfigListe');
+  if(!cont) return;
+  const cibles = Object.keys(VOX_ALIAS).filter(function(c){ return VOX_ALIAS[c] && VOX_ALIAS[c].length; });
+  if(!cibles.length){ cont.innerHTML='<div style="opacity:.6;padding:8px 0;font-size:.8rem;">Aucun mot personnalisé enregistré pour l\'instant.</div>'; return; }
+  cont.innerHTML = cibles.map(function(c){
+    const label = VOX_LABELS[c] || c;
+    const chips = VOX_ALIAS[c].map(function(p){
+      return '<span style="display:inline-flex;align-items:center;gap:4px;background:#eee;border-radius:14px;padding:3px 10px;margin:2px;font-size:.78rem;">'+p+' <button onclick="voxConfigSupprimer(\''+c+'\',\''+p+'\')" style="border:none;background:none;cursor:pointer;color:#b91c1c;font-weight:700;">✕</button></span>';
+    }).join('');
+    return '<div style="margin-bottom:10px;"><div style="font-weight:700;font-size:.85rem;margin-bottom:4px;">'+label+'</div>'+chips+'</div>';
+  }).join('');
+}
+voxConfigCharger();
 
 function voxIndicateurVeille(actif){
   const el=document.getElementById('voxVeilleIndic');
@@ -1783,25 +1917,25 @@ function voxCommandesNymphes(low){
   const pageActive=document.querySelector('.page.active');
   if(!pageActive || pageActive.id!=='page-nymphes') return false;
 
-  if(/\btravaux\b/.test(low)){
+  if(voxAliasCorrespond(low,'nym-travaux') || /\btravaux\b/.test(low)){
     const b=document.getElementById('nymBtnTravauxVers08');
     if(b){ b.click(); voxJournal('🎙️ Travaux sur les bacs (Vers 08).'); return true; }
   }
-  if(/\bfusion(ner)?\b/.test(low)){
+  if(voxAliasCorrespond(low,'nym-fusionner') || /\bfusion(ner)?\b/.test(low)){
     const b=document.getElementById('nymBtnFusionner');
     if(b){ b.click(); voxJournal('🎙️ Fusionner.'); return true; }
   }
-  if(/\btrier\b/.test(low)){
+  if(voxAliasCorrespond(low,'nym-trier') || /\btrier\b/.test(low)){
     const b=document.getElementById('nymBtnTrier');
     if(b){ b.click(); voxJournal('🎙️ Trier les nymphes.'); return true; }
   }
-  if(/\bmorts?\b/.test(low)){
+  if(voxAliasCorrespond(low,'nym-morts') || /\bmorts?\b/.test(low)){
     const champ=document.getElementById('nymFTriMortsAffiche');
     if(champ && champ.offsetParent!==null){ champ.click(); voxJournal('🎙️ Quantité de morts.'); return true; }
     voxJournal('🎙️ Ouvrez d\'abord « Trier les nymphes » pour saisir le poids des morts.');
     return true;
   }
-  if(/\bajout(er|e)?\b.*\bbac\b|\bbac\b.*\bajout/.test(low)){
+  if(voxAliasCorrespond(low,'nym-ajouter') || /\bajout(er|e)?\b.*\bbac\b|\bbac\b.*\bajout/.test(low)){
     const b=document.getElementById('nymBtnAjouter');
     if(b){ b.click(); voxJournal('🎙️ Ajouter un bac.'); return true; }
   }
@@ -1812,27 +1946,18 @@ function voxCommandesNymphes(low){
 function voxTraiterCommande(transcript){
   const low = transcript.toLowerCase().trim().replace(/[.!?]+$/,'');
 
-  // 1) Navigation avec verbe explicite ("va sur X", "ouvre X"...)
-  const navMatch = low.match(/\b(?:va(?:s)? sur|va(?:s)? [aà]|ouvre|affiche|montre|passe (?:sur|[aà]|au|aux)|page)\s+(.+)/);
-  if(navMatch){
-    const cible = navMatch[1];
-    const page = VOX_PAGES.find(function(p){ return p.mots.some(function(m){ return cible.indexOf(m)!==-1; }); });
-    if(page){ showPage(page.id); voxJournal('🎙️ Navigation : '+page.label); return; }
-  }
-
-  // 1bis) Navigation directe : l'utilisateur a juste dit le nom de la page, sans verbe
-  // (on exige une correspondance exacte du mot entier — pas une simple sous-chaîne —
-  //  pour éviter qu'un "vers" isolé dans une autre phrase ne déclenche une navigation).
-  const pageDirecte = VOX_PAGES.find(function(p){
-    return p.mots.some(function(m){ return low===m; });
-  });
-  if(pageDirecte){ showPage(pageDirecte.id); voxJournal('🎙️ Navigation : '+pageDirecte.label); return; }
+  // 1) Navigation — que ce soit avec un verbe explicite ("va sur les Œufs", "ouvre
+  //    Coléoptères"...) ou juste le nom de la page tout seul ("Nymphes", "les Vers"...).
+  //    La comparaison se fait mot à mot et sans accents (voir voxTrouverPage), donc le
+  //    singulier/pluriel, les articles et les accents mal transcrits sont tolérés.
+  const page = voxTrouverPage(low);
+  if(page){ showPage(page.id); voxJournal('🎙️ Navigation : '+page.label); return; }
 
   // 2) Commandes spécifiques à la page Nymphes
   if(voxCommandesNymphes(low)) return;
 
   // 3) Validation générique
-  if(/\b(valide|valider|confirme|confirmer|enregistre|enregistrer)\b/.test(low)){
+  if(voxAliasCorrespond(low,'valider') || /\b(valide|valider|confirme|confirmer|enregistre|enregistrer)\b/.test(low)){
     voxValiderContexte();
     return;
   }
@@ -1840,6 +1965,7 @@ function voxTraiterCommande(transcript){
   // 4) Dictée de valeur vers le pavé/champ actif
   if(voxDicterValeur(transcript)) return;
 
+  voxDernierEntendu = voxNormaliser(transcript);
   voxJournal('🎙️ Compris : «'+transcript+'» — commande non reconnue.');
 }
 
@@ -1932,6 +2058,7 @@ function voxDicterValeur(transcript){
 
 /* Reprise automatique de la veille après connexion, si l'utilisateur l'avait activée */
 window.addEventListener('fbReady', function(){
+  voxConfigSyncCloud();
   if(localStorage.getItem('vox_veille_pref')==='1'){
     voxVeilleSouhaitee = true;
     setTimeout(voxDemarrerVeille, 800);
