@@ -2003,8 +2003,8 @@ function colRafraichirAlertes(){
   const secouages=[],chgts=[],oeufs=[],deshys=[];
   colLots.forEach(lot=>{
     const d1s=colDateSecouage(lot,1),d1c=colDateChgBac(lot,1);
-    if(!lot.c1?.done_sec&&d1s<=auj) secouages.push({label:'Grille '+lot.grille+' / Bac '+lot.c1.bac,date:d1s,lot,cycle:1,type:'sec'});
-    if(lot.c1?.done_sec&&!lot.c1?.done_chg&&d1c<=auj) chgts.push({label:'Grille '+lot.grille+' / Bac '+lot.c1.bac,date:d1c,lot,cycle:1,type:'chg'});
+    if(!lot.c1?.done_sec&&d1s<=auj) secouages.push({label:'Grille '+lot.grille+' / Bac '+(lot.c1?.bac??'-'),date:d1s,lot,cycle:1,type:'sec'});
+    if(lot.c1?.done_sec&&!lot.c1?.done_chg&&d1c<=auj) chgts.push({label:'Grille '+lot.grille+' / Bac '+(lot.c1?.bac??'-'),date:d1c,lot,cycle:1,type:'chg'});
     if(lot.c2){
       const d2s=colDateSecouage(lot,2),d2c=colDateChgBac(lot,2);
       if(!lot.c2.done_sec&&d2s<=auj) secouages.push({label:'Grille '+lot.grille+' / Bac '+lot.c2.bac,date:d2s,lot,cycle:2,type:'sec'});
