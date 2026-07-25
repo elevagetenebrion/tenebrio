@@ -1917,7 +1917,13 @@ async function colSyncFromCloud(){
   localStorage.setItem(COL_CLE, JSON.stringify(colLots));
 }
 function colDateStr(d){ return d.toISOString().slice(0,10); }
-function colAddJours(str,n){ const d=new Date(str+'T12:00:00'); d.setDate(d.getDate()+n); return colDateStr(d); }
+function colAddJours(str,n){
+  if(!str){ return null; }
+  const d=new Date(str+'T12:00:00');
+  if(isNaN(d.getTime())){ return null; }
+  d.setDate(d.getDate()+n);
+  return colDateStr(d);
+}
 function colAffDate(str){ if(!str) return '-'; const [y,m,j]=str.split('-'); return j+'/'+m+'/'+y; }
 function colAujourdHui(){ return colDateStr(new Date()); }
 function colDateSecouage(lot,c){ return colAddJours(lot.dateEntree,(c-1)*10+5); }
@@ -2097,7 +2103,7 @@ function colRafraichirTableau(){
   const tbody=document.getElementById('colMainTbody'); if(!tbody)return;
   if(!colLots.length){tbody.innerHTML='<tr><td colspan="20" class="col-empty-state">Aucun lot enregistré</td></tr>';return;}
   const auj=colAujourdHui();
-  const sorted=[...colLots].sort((a,b)=>a.dateEntree.localeCompare(b.dateEntree));
+  const sorted=[...colLots].sort((a,b)=>String(a.dateEntree||'').localeCompare(String(b.dateEntree||'')));
   tbody.innerHTML='';
   sorted.forEach(lot=>{
     const tr=document.createElement('tr');
