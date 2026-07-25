@@ -1556,9 +1556,12 @@ function voxArreter(silencieux){
     voxActifBtn.classList.remove('listening');
     voxAppliquerLibelle(voxActifBtn, false);
     voxActifBtn=null;
-    // Une dictée manuelle vient de se terminer : si la veille mains-libres était active, on la reprend.
-    if(typeof voxVeilleSouhaitee!=='undefined' && voxVeilleSouhaitee) setTimeout(voxDemarrerVeille, 500);
   }
+  // Toute coupure du micro (dictée manuelle terminée, OU veille "Ténébrio" coupée par
+  // showPage() lors d'une navigation) doit relancer la veille si elle était souhaitée.
+  // voxDemarrerVeille() se protège elle-même (elle ne fait rien si une dictée manuelle
+  // vient de redémarrer entre-temps, via son test "if(voxActifBtn) return;").
+  if(typeof voxVeilleSouhaitee!=='undefined' && voxVeilleSouhaitee) setTimeout(voxDemarrerVeille, 500);
   if(!silencieux) {}
 }
 function voxBasculer(btnRef, onPhrase, options){
