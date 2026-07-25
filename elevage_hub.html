@@ -1413,14 +1413,15 @@ async function fbSafeLoad(key, fallback) {
 /* ══ HELPER GÉNÉRIQUE DE FUSION (anti-écrasement multi-appareils) ══
    Fusionne un tableau local avec la version cloud avant sauvegarde,
    en dédoublonnant via une fonction de clé (id, uid, ou clé composite). */
-async function fbMergeArrayByKey(key, localArr, keyFn) {
+async function fbMergeArrayByKey(key, localArr, keyFn, excludeKeys) {
   try {
     const cloudArr = await fbSafeLoad(key, null);
     if (Array.isArray(cloudArr)) {
       const localKeys = new Set(localArr.map(keyFn));
+      const excluded = excludeKeys instanceof Set ? excludeKeys : new Set();
       cloudArr.forEach(function(item){
         const k = keyFn(item);
-        if (k !== undefined && k !== null && !localKeys.has(k)) {
+        if (k !== undefined && k !== null && !localKeys.has(k) && !excluded.has(k)) {
           localArr.push(item);
           localKeys.add(k);
         }
@@ -1904,16 +1905,24 @@ function initEnvPage() {
 
 /* ══ COLÉOPTÈRES ══ */
 const COL_CLE = 'col_v21';
+const COL_TOMBSTONE_KEY = 'col_v21_deleted';
 let colLots = [];
+function colChargerTombstone(){ try{ return new Set(JSON.parse(localStorage.getItem(COL_TOMBSTONE_KEY))||[]); }catch(e){ return new Set(); } }
+function colAjouterTombstone(id){
+  const t = colChargerTombstone(); t.add(id);
+  localStorage.setItem(COL_TOMBSTONE_KEY, JSON.stringify([...t]));
+}
 
-async function colSauver(){
-  await fbMergeArrayByKey(COL_CLE, colLots, function(l){ return l.id; });
+async function colSauver(forceOverwrite){
+  if (!forceOverwrite) {
+    await fbMergeArrayByKey(COL_CLE, colLots, function(l){ return l.id; }, colChargerTombstone());
+  }
   localStorage.setItem(COL_CLE, JSON.stringify(colLots));
   return fbSafeSave(COL_CLE, colLots);
 }
 async function colSyncFromCloud(){
   if (!colLots || colLots.length === 0) { try{ colLots = JSON.parse(localStorage.getItem(COL_CLE))||[]; }catch(e){ colLots=[]; } }
-  await fbMergeArrayByKey(COL_CLE, colLots, function(l){ return l.id; });
+  await fbMergeArrayByKey(COL_CLE, colLots, function(l){ return l.id; }, colChargerTombstone());
   localStorage.setItem(COL_CLE, JSON.stringify(colLots));
 }
 function colDateStr(d){ return d.toISOString().slice(0,10); }
@@ -2150,7 +2159,10 @@ let colModalSuppLotId=null,colModalSuppCycle=null;
 function colOuvrirModalSupp(id,cycle){
   colModalSuppLotId=id;colModalSuppCycle=cycle;
   const lot=colLots.find(l=>l.id==id);
-  document.getElementById('colModalSuppTxt').textContent='Grille '+lot.grille+' — Cycle '+cycle+' va être effacé.';
+  const msg = (cycle===1)
+    ? 'Grille '+lot.grille+' — Le lot entier va être supprimé du tableau.'
+    : 'Grille '+lot.grille+' — Cycle '+cycle+' (et les suivants) vont être effacés.';
+  document.getElementById('colModalSuppTxt').textContent=msg;
   document.getElementById('colBtnConfirmSupp').onclick=colConfirmerSupp;
   document.getElementById('colModalSupp').classList.add('open');
 }
@@ -2160,6 +2172,11 @@ function colConfirmerSupp(){
   // Effacer le cycle ciblé et tous les cycles suivants (un cycle 3 effacé implique l'effacement du 4)
   for(let c=colModalSuppCycle; c<=4; c++){
     lot['c'+c]=null;
+  }
+  // Si le lot n'a plus aucun cycle actif, on le retire entièrement du tableau
+  if(!lot.c1 && !lot.c2 && !lot.c3 && !lot.c4){
+    colLots = colLots.filter(l=>l.id!==lot.id);
+    colAjouterTombstone(lot.id);
   }
   colSauver();colPeuplerGrille();colPeuplerBacs();colFermerModalSupp();colRafraichir();
   const t=document.getElementById('toast');
@@ -4106,7 +4123,8 @@ function colViderToutLeTableau(){
   if(!confirm('⚠️ Ceci va supprimer TOUTES les lignes du tableau Coléoptères (local + cloud partagé). Action irréversible. Continuer ?')) return;
   if(!confirm('Confirmation finale : vider complètement le tableau Coléoptères ?')) return;
   colLots = [];
-  colSauver();
+  localStorage.removeItem(COL_TOMBSTONE_KEY);
+  colSauver(true); // écrasement volontaire, pas de fusion
   colPeuplerGrille(); colPeuplerBacs(); colRafraichir();
   const t=document.getElementById('toast');
   if(t){ t.textContent='Tableau Coléoptères vidé.'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2500); }
