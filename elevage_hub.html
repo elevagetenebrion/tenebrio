@@ -245,10 +245,6 @@
   .toast.show { opacity: 1; }
 
 
-    /* SON */
-    #page-son{background:#fff;color:#111;font-family:Arial,sans-serif;padding:24px 16px 40px;min-height:100vh;}
-    #page-son h1{text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;}
-    #alertBox{display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;}
     .form-section{background:#f7f9fb;border:1.5px solid #d0d7de;border-radius:10px;padding:16px 20px;max-width:980px;margin:0 auto 26px auto;}
     .form-section h2{font-size:.88rem;font-weight:800;color:#1a5276;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
     .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;align-items:end;}
@@ -257,24 +253,11 @@
     .btn-add{padding:8px 18px;background:#1a5276;color:#fff;border:none;border-radius:7px;font-size:.95rem;font-weight:800;cursor:pointer;height:36px;align-self:end;width:100%;}
     .btn-add:hover{background:#154360;}
     .table-wrapper{max-width:980px;margin:0 auto 30px auto;overflow-x:auto;border:1.5px solid #d0d7de;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.07);}
-    #page-son table{width:100%;border-collapse:collapse;font-size:.91rem;background:#fff;}
-    #page-son thead tr{background:#1a5276;color:#fff;}
-    #page-son thead th{padding:11px 10px;text-align:center;font-size:.76rem;font-weight:800;text-transform:uppercase;white-space:nowrap;}
-    #page-son tbody tr{border-bottom:1px solid #eaecef;}
-    #page-son tbody tr:hover{background:#f4f8fb;}
-    #page-son tbody td{padding:9px 10px;text-align:center;vertical-align:middle;}
-    .col-entree{color:#1a7a40;font-weight:700;}
-    .col-sortie{color:#c0392b;font-weight:700;}
-    .col-cumul{font-weight:700;}
-    .col-cumul-alert{font-weight:800;color:#c0392b;}
-    .col-reste{font-size:.78rem;color:#666;font-style:italic;}
-    .col-reste-zero{font-size:.78rem;color:#aaa;font-style:italic;text-decoration:line-through;}
-    .empty-msg td{color:#aaa;font-style:italic;padding:24px;}
     .btn-del{background:none;border:1.5px solid #c0392b;color:#c0392b;font-size:1rem;font-weight:900;cursor:pointer;border-radius:5px;padding:2px 9px;}
     .btn-del:hover{background:#fdecea;}
     .toast{position:fixed;bottom:24px;right:24px;background:#1a1d23;color:#fff;padding:10px 18px;border-radius:8px;font-size:.85rem;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;}
     .toast.show{opacity:1;}
-    @media(max-width:650px){#page-son h1{font-size:1.2rem;}.form-grid{grid-template-columns:1fr 1fr;}#page-son thead th,#page-son tbody td{font-size:.7rem;padding:6px 4px;}}
+    @media(max-width:650px){.form-grid{grid-template-columns:1fr 1fr;}}
   
 /* ══ COLÉOPTÈRES ══ */
 #page-col{font-family:'Lato',sans-serif;background:#fff;color:#1a1d23;min-height:100vh;padding-bottom:60px;}
@@ -964,9 +947,10 @@ function stkKey(type){ return 'stock_v2_' + type; }
 function stkLoad(type){
   try { return JSON.parse(localStorage.getItem(stkKey(type))) || []; } catch(e){ return []; }
 }
-function stkSave(type, rows){
+async function stkSave(type, rows){
+  await fbMergeArrayByKey(stkKey(type), rows, function(r){ return r.id; });
   localStorage.setItem(stkKey(type), JSON.stringify(rows));
-  fbSafeSave(stkKey(type), rows);
+  return fbSafeSave(stkKey(type), rows);
 }
 async function stkSyncFromCloud(){
   for (const type in STK_TYPES){
@@ -1345,43 +1329,6 @@ function stkExportCSV(){
   </div>
 </div>
 
-<!-- SON DE BLÉ -->
-<div id="page-son" class="page">
-  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1>🌾 Stock de Son de Blé</h1>
-  <div class="imprimer-bar" style="max-width:980px;">
-    <button class="btn-imprimer" onclick="exporterEnPDF('page-son', 'son_de_ble.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button>
-    <button class="btn-mise-a-zero" style="margin-left:10px;" onclick="sonMiseAZero()">🔄 Mise à zéro</button>
-    <button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportSonDeBle()">📥 Télécharger CSV</button>
-  </div>
-  <div id="alertBox">⚠ STOCK BAS — Cumul ≤ 20 kg !</div>
-  <div class="form-section">
-    <h2>➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="inDate"></div>
-      <div class="form-group"><label>Type</label><select id="inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Facture</label><input type="text" id="inFac" placeholder="FAC-2026-001"></div>
-      <div class="form-group"><label>Nom FRS</label><input type="text" id="inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="btnAdd">✔ Ajouter</button></div>
-    </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr>
-        <th>Date</th><th style="color:#a8e6a3">Entrées (kg)</th><th style="color:#f5b7b1">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Facture</th><th>N° Facture</th><th>Nom FRS</th><th>✕</th>
-      </tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour btn-retour-vert" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
 <script>
 /* ══ CONFIGURATION NOMBRE DE BACS ══ */
 const BAC_MAX_KEY = 'config_bac_max';
@@ -1462,6 +1409,28 @@ async function fbSafeLoad(key, fallback) {
   return fallback;
 }
 
+/* ══ HELPER GÉNÉRIQUE DE FUSION (anti-écrasement multi-appareils) ══
+   Fusionne un tableau local avec la version cloud avant sauvegarde,
+   en dédoublonnant via une fonction de clé (id, uid, ou clé composite). */
+async function fbMergeArrayByKey(key, localArr, keyFn) {
+  try {
+    const cloudArr = await fbSafeLoad(key, null);
+    if (Array.isArray(cloudArr)) {
+      const localKeys = new Set(localArr.map(keyFn));
+      cloudArr.forEach(function(item){
+        const k = keyFn(item);
+        if (k !== undefined && k !== null && !localKeys.has(k)) {
+          localArr.push(item);
+          localKeys.add(k);
+        }
+      });
+    }
+  } catch (err) {
+    console.error('fbMergeArrayByKey: échec fusion', key, err);
+  }
+  return localArr;
+}
+
 /* ══ NAVIGATION ══ */
 function showPage(id) {
   if(typeof voxArreter==='function') voxArreter(true);
@@ -1473,13 +1442,6 @@ function showPage(id) {
     var stkDateEl = document.getElementById('stkInDate');
     if (stkDateEl) stkDateEl.value = new Date().toISOString().split('T')[0];
   }
-  if (id === 'page-son') {
-    sonSyncFromCloud().then(function(){ sonRender(); });
-    document.getElementById('inDate').value = new Date().toISOString().split('T')[0];
-  }
-  if (id === 'page-leg') { legLoadSyncFromCloud().then(function(){ legRender(); }); document.getElementById('leg-inDate').value = new Date().toISOString().split('T')[0]; }
-  if (id === 'page-lev') { levLoadSyncFromCloud().then(function(){ levRender(); }); document.getElementById('lev-inDate').value = new Date().toISOString().split('T')[0]; }
-  if (id === 'page-poids') { poidsLoadSyncFromCloud().then(function(){ poidsRender(); }); document.getElementById('poids-inDate').value = new Date().toISOString().split('T')[0]; }
   if (id === 'page-env') { envSyncFromCloud().then(function(){ initEnvPage(); }); }
   if (id === 'page-col') { colSyncFromCloud().then(function(){ initColPage(); }); }
   if (id === 'page-oeufs') { ponteSyncFromCloud().then(function(){ initOeufsPage(); }); }
@@ -1939,362 +1901,14 @@ function initEnvPage() {
 }
 
 
-/* ══ SON DE BLÉ ══ */
-const SON_KEY = 'stock_son_ble_v4';
-function sonLoad() { try { return JSON.parse(localStorage.getItem(SON_KEY))||[]; } catch { return []; } }
-function sonSave(d) {
-  localStorage.setItem(SON_KEY, JSON.stringify(d));
-  fbSafeSave(SON_KEY, d);
-}
-async function sonSyncFromCloud() {
-    const cloudData = await fbSafeLoad(SON_KEY, null);
-  if (cloudData !== null) {
-    localStorage.setItem(SON_KEY, JSON.stringify(cloudData));
-  }
-}
-
-function sonComputeRows(data) {
-  var fifo=[], rows=[];
-  data.forEach(function(row,i) {
-    if (row.type==='entree') {
-      fifo.push({fac:row.fac, reste:row.qte});
-      var cumul=fifo.reduce((s,e)=>s+e.reste,0);
-      rows.push({orig:row,index:i,entree:row.qte,sortie:0,cumul,resteInfo:null});
-    } else {
-      var rs=row.qte;
-      while(rs>0&&fifo.length>0){var f=fifo[0],d=Math.min(f.reste,rs);f.reste=Math.round((f.reste-d)*1000)/1000;rs=Math.round((rs-d)*1000)/1000;if(f.reste<=0)fifo.shift();}
-      var c2=Math.round(fifo.reduce((s,e)=>s+e.reste,0)*1000)/1000;
-      rows.push({orig:row,index:i,entree:0,sortie:row.qte,cumul:c2,resteInfo:null});
-    }
-  });
-  var f2=[];
-  rows.forEach(function(r) {
-    if(r.orig.type==='entree'){
-      f2.push({fac:r.orig.fac,reste:r.orig.qte});
-      r.resteInfo=f2.map(e=>(e.fac||'—')+': '+e.reste.toFixed(2)+' kg').join(' | ');
-    } else {
-      var rs2=r.orig.qte;
-      f2.forEach(e=>{if(rs2<=0)return;var d=Math.min(e.reste,rs2);e.reste=Math.round((e.reste-d)*1000)/1000;rs2=Math.round((rs2-d)*1000)/1000;});
-      f2=f2.filter(e=>e.reste>0);
-      r.resteInfo=f2.length?f2.map(e=>(e.fac||'—')+': '+e.reste.toFixed(2)+' kg').join(' | '):'—';
-    }
-  });
-  return rows;
-}
-
-function sonRender() {
-  var tbody=document.getElementById('tbody');
-  if(!tbody) return;
-  var data=sonLoad();
-  tbody.innerHTML='';
-  var alertBox=document.getElementById('alertBox');
-  if(!data.length){
-    tbody.innerHTML="<tr class='empty-msg'><td colspan='8'>Aucune donnée. Ajoutez une ligne ci-dessus.</td></tr>";
-    if(alertBox) alertBox.style.display='none';
-    return;
-  }
-  var rows=sonComputeRows(data), lastC=0;
-  rows.forEach(function(r){
-    lastC=r.cumul;
-    var isE=r.orig.type==='entree', isA=r.cumul<=20;
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+r.orig.date+'</td>'
-      +'<td class="col-entree">'+(isE?r.entree.toFixed(2)+' kg':'—')+'</td>'
-      +'<td class="col-sortie">'+(!isE?r.sortie.toFixed(2)+' kg':'—')+'</td>'
-      +(isA?'<td class="col-cumul-alert">⚠ '+r.cumul.toFixed(2)+' kg</td>':'<td class="col-cumul">'+r.cumul.toFixed(2)+' kg</td>')
-      +'<td class="'+(r.resteInfo==='—'?'col-reste-zero':'col-reste')+'">'+(r.resteInfo||'—')+'</td>'
-      +'<td>'+(r.orig.fac||'—')+'</td>'
-      +'<td>'+(r.orig.frs||'—')+'</td>'
-      +'<td><button class="btn-del" data-i="'+r.index+'">✕</button></td>';
-    tbody.appendChild(tr);
-  });
-  if(alertBox) alertBox.style.display=lastC<=20?'block':'none';
-}
-
-document.addEventListener('click', function(e) {
-  if(e.target.classList.contains('btn-del')) {
-    var data=sonLoad();
-    data.splice(parseInt(e.target.getAttribute('data-i')),1);
-    sonSave(data); sonRender();
-  }
-  if(e.target.id==='btnAdd') {
-    var date=document.getElementById('inDate').value,
-        type=document.getElementById('inType').value,
-        qte=parseFloat(document.getElementById('inQte').value),
-        fac=document.getElementById('inFac').value.trim(),
-        frs=document.getElementById('inFrs').value.trim();
-    if(!date){alert('Veuillez saisir une date.');return;}
-    if(!qte||qte<=0){alert('Veuillez saisir une quantité valide.');return;}
-    var data=sonLoad();
-    data.push({date,type,qte,fac,frs});
-    sonSave(data); sonRender();
-    document.getElementById('inQte').value='';
-    document.getElementById('inFac').value='';
-    document.getElementById('inFrs').value='';
-  }
-});
-
-
-/* ══ LÉGUMES ══ */
-const LEG_KEY = 'stock_legumes_v1';
-const LEG_SEUIL_KEY = 'stock_legumes_seuil';
-function legGetSeuil() { var v=parseFloat(localStorage.getItem(LEG_SEUIL_KEY)); return isNaN(v)?5:v; }
-function legLoad() { try { return JSON.parse(localStorage.getItem(LEG_KEY))||[]; } catch { return []; } }
-function legSave(d) {
-  localStorage.setItem(LEG_KEY, JSON.stringify(d));
-  fbSafeSave(LEG_KEY, d);
-}
-async function legLoadSyncFromCloud() {
-    const cloudData = await fbSafeLoad(LEG_KEY, null);
-  if (cloudData !== null) { localStorage.setItem(LEG_KEY, JSON.stringify(cloudData)); }
-}
-function legComputeRows(data) {
-  var fifo=[], rows=[];
-  data.forEach(function(row,i) {
-    if (row.type==='entree') {
-      fifo.push({fac:row.fac, reste:row.qte});
-      var cumul=fifo.reduce(function(s,e){return s+e.reste;},0);
-      rows.push({orig:row,index:i,entree:row.qte,sortie:0,cumul:cumul,resteInfo:null});
-    } else {
-      var rs=row.qte;
-      while(rs>0&&fifo.length>0){var f=fifo[0],d=Math.min(f.reste,rs);f.reste=Math.round((f.reste-d)*1000)/1000;rs=Math.round((rs-d)*1000)/1000;if(f.reste<=0)fifo.shift();}
-      var c2=Math.round(fifo.reduce(function(s,e){return s+e.reste;},0)*1000)/1000;
-      rows.push({orig:row,index:i,entree:0,sortie:row.qte,cumul:c2,resteInfo:null});
-    }
-  });
-  var f2=[];
-  rows.forEach(function(r) {
-    if(r.orig.type==='entree'){
-      f2.push({fac:r.orig.fac,reste:r.orig.qte});
-      r.resteInfo=f2.map(function(e){return(e.fac||'—')+': '+e.reste.toFixed(2)+' kg';}).join(' | ');
-    } else {
-      var rs2=r.orig.qte;
-      f2.forEach(function(e){if(rs2<=0)return;var d=Math.min(e.reste,rs2);e.reste=Math.round((e.reste-d)*1000)/1000;rs2=Math.round((rs2-d)*1000)/1000;});
-      f2=f2.filter(function(e){return e.reste>0;});
-      r.resteInfo=f2.length?f2.map(function(e){return(e.fac||'—')+': '+e.reste.toFixed(2)+' kg';}).join(' | '):'—';
-    }
-  });
-  return rows;
-}
-function legRender() {
-  var tbody=document.getElementById('leg-tbody'); if(!tbody) return;
-  var seuil=legGetSeuil();
-  var si=document.getElementById('leg-seuilInput'); if(si) si.value=seuil;
-  var sa=document.getElementById('leg-alertSeuil'); if(sa) sa.textContent=seuil;
-  var data=legLoad(); tbody.innerHTML='';
-  var ab=document.getElementById('leg-alertBox');
-  if(!data.length){tbody.innerHTML='<tr class="empty-msg"><td colspan="9">Aucune donnée. Ajoutez une ligne ci-dessus.</td></tr>';if(ab)ab.style.display='none';return;}
-  var rows=legComputeRows(data),lastC=0;
-  rows.forEach(function(r){
-    lastC=r.cumul; var isE=r.orig.type==='entree', isA=r.cumul<=seuil;
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+r.orig.date+'</td>'
-      +'<td>'+(r.orig.legume||'—')+'</td>'
-      +'<td class="col-entree">'+(isE?r.entree.toFixed(2)+' kg':'—')+'</td>'
-      +'<td class="col-sortie">'+(!isE?r.sortie.toFixed(2)+' kg':'—')+'</td>'
-      +(isA?'<td class="col-cumul-alert">⚠ '+r.cumul.toFixed(2)+' kg</td>':'<td class="col-cumul">'+r.cumul.toFixed(2)+' kg</td>')
-      +'<td class="'+(r.resteInfo==='—'?'col-reste-zero':'col-reste')+'">'+(r.resteInfo||'—')+'</td>'
-      +'<td>'+(r.orig.fac||'—')+'</td>'
-      +'<td>'+(r.orig.frs||'—')+'</td>'
-      +'<td><button class="btn-del-leg" data-i="'+r.index+'">✕</button></td>';
-    tbody.appendChild(tr);
-  });
-  if(ab) ab.style.display=lastC<=seuil?'block':'none';
-}
-
-/* ══ LEVURE ══ */
-const LEV_KEY = 'stock_levure_v1';
-function levLoad() { try { return JSON.parse(localStorage.getItem(LEV_KEY))||[]; } catch { return []; } }
-function levSave(d) {
-  localStorage.setItem(LEV_KEY, JSON.stringify(d));
-  fbSafeSave(LEV_KEY, d);
-}
-async function levLoadSyncFromCloud() {
-    const cloudData = await fbSafeLoad(LEV_KEY, null);
-  if (cloudData !== null) { localStorage.setItem(LEV_KEY, JSON.stringify(cloudData)); }
-}
-function levComputeRows(data) {
-  var fifo=[], rows=[];
-  data.forEach(function(row,i) {
-    if (row.type==='entree') {
-      fifo.push({fac:row.fac, reste:row.qte});
-      var cumul=fifo.reduce(function(s,e){return s+e.reste;},0);
-      rows.push({orig:row,index:i,entree:row.qte,sortie:0,cumul:cumul,resteInfo:null});
-    } else {
-      var rs=row.qte;
-      while(rs>0&&fifo.length>0){var f=fifo[0],d=Math.min(f.reste,rs);f.reste=Math.round((f.reste-d)*1000)/1000;rs=Math.round((rs-d)*1000)/1000;if(f.reste<=0)fifo.shift();}
-      var c2=Math.round(fifo.reduce(function(s,e){return s+e.reste;},0)*1000)/1000;
-      rows.push({orig:row,index:i,entree:0,sortie:row.qte,cumul:c2,resteInfo:null});
-    }
-  });
-  var f2=[];
-  rows.forEach(function(r) {
-    if(r.orig.type==='entree'){
-      f2.push({fac:r.orig.fac,reste:r.orig.qte});
-      r.resteInfo=f2.map(function(e){return(e.fac||'—')+': '+e.reste.toFixed(2)+' kg';}).join(' | ');
-    } else {
-      var rs2=r.orig.qte;
-      f2.forEach(function(e){if(rs2<=0)return;var d=Math.min(e.reste,rs2);e.reste=Math.round((e.reste-d)*1000)/1000;rs2=Math.round((rs2-d)*1000)/1000;});
-      f2=f2.filter(function(e){return e.reste>0;});
-      r.resteInfo=f2.length?f2.map(function(e){return(e.fac||'—')+': '+e.reste.toFixed(2)+' kg';}).join(' | '):'—';
-    }
-  });
-  return rows;
-}
-function levRender() {
-  var tbody=document.getElementById('lev-tbody'); if(!tbody) return;
-  var data=levLoad(); tbody.innerHTML='';
-  var ab=document.getElementById('lev-alertBox');
-  if(!data.length){tbody.innerHTML='<tr class="empty-msg"><td colspan="8">Aucune donnée. Ajoutez une ligne ci-dessus.</td></tr>';if(ab)ab.style.display='none';return;}
-  var rows=levComputeRows(data),lastC=0;
-  rows.forEach(function(r){
-    lastC=r.cumul; var isE=r.orig.type==='entree', isA=r.cumul<=5;
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+r.orig.date+'</td>'
-      +'<td class="col-entree">'+(isE?r.entree.toFixed(2)+' kg':'—')+'</td>'
-      +'<td class="col-sortie">'+(!isE?r.sortie.toFixed(2)+' kg':'—')+'</td>'
-      +(isA?'<td class="col-cumul-alert">⚠ '+r.cumul.toFixed(2)+' kg</td>':'<td class="col-cumul">'+r.cumul.toFixed(2)+' kg</td>')
-      +'<td class="'+(r.resteInfo==='—'?'col-reste-zero':'col-reste')+'">'+(r.resteInfo||'—')+'</td>'
-      +'<td>'+(r.orig.fac||'—')+'</td>'
-      +'<td>'+(r.orig.frs||'—')+'</td>'
-      +'<td><button class="btn-del-lev" data-i="'+r.index+'">✕</button></td>';
-    tbody.appendChild(tr);
-  });
-  if(ab) ab.style.display=lastC<=5?'block':'none';
-}
-
-/* ══ LISTENERS LEG & LEV ══ */
-document.addEventListener('click', function(e) {
-  if(e.target.classList.contains('btn-del-leg')){
-    var data=legLoad();data.splice(parseInt(e.target.getAttribute('data-i')),1);legSave(data);legRender();
-  }
-  if(e.target.classList.contains('btn-del-lev')){
-    var data=levLoad();data.splice(parseInt(e.target.getAttribute('data-i')),1);levSave(data);levRender();
-  }
-  if(e.target.id==='leg-btnAdd'){
-    var date=document.getElementById('leg-inDate').value,
-        legume=document.getElementById('leg-inLegume').value.trim(),
-        type=document.getElementById('leg-inType').value,
-        qte=parseFloat(document.getElementById('leg-inQte').value),
-        fac=document.getElementById('leg-inFac').value.trim(),
-        frs=document.getElementById('leg-inFrs').value.trim();
-    if(!date){alert('Veuillez saisir une date.');return;}
-    if(!qte||qte<=0){alert('Veuillez saisir une quantité valide.');return;}
-    var data=legLoad();data.push({date,legume,type,qte,fac,frs});legSave(data);legRender();
-    document.getElementById('leg-inLegume').value='';
-    document.getElementById('leg-inQte').value='';
-    document.getElementById('leg-inFac').value='';
-    document.getElementById('leg-inFrs').value='';
-  }
-  if(e.target.id==='lev-btnAdd'){
-    var date=document.getElementById('lev-inDate').value,
-        type=document.getElementById('lev-inType').value,
-        qte=parseFloat(document.getElementById('lev-inQte').value),
-        fac=document.getElementById('lev-inFac').value.trim(),
-        frs=document.getElementById('lev-inFrs').value.trim();
-    if(!date){alert('Veuillez saisir une date.');return;}
-    if(!qte||qte<=0){alert('Veuillez saisir une quantité valide.');return;}
-    var data=levLoad();data.push({date,type,qte,fac,frs});levSave(data);levRender();
-    document.getElementById('lev-inQte').value='';
-    document.getElementById('lev-inFac').value='';
-    document.getElementById('lev-inFrs').value='';
-  }
-});
-document.addEventListener('change', function(e){
-  if(e.target.id==='leg-seuilInput'){
-    var v=parseFloat(e.target.value);
-    if(!isNaN(v)&&v>0){localStorage.setItem(LEG_SEUIL_KEY,v);legRender();}
-  }
-});
-
-
-/* ══ POIDS CASSÉ ══ */
-const POIDS_KEY = 'stock_poids_casse_v1';
-function poidsLoad() { try { return JSON.parse(localStorage.getItem(POIDS_KEY))||[]; } catch { return []; } }
-function poidsSave(d) {
-  localStorage.setItem(POIDS_KEY, JSON.stringify(d));
-  fbSafeSave(POIDS_KEY, d);
-}
-async function poidsLoadSyncFromCloud() {
-    const cloudData = await fbSafeLoad(POIDS_KEY, null);
-  if (cloudData !== null) { localStorage.setItem(POIDS_KEY, JSON.stringify(cloudData)); }
-}
-function poidsComputeRows(data) {
-  var fifo=[], rows=[];
-  data.forEach(function(row,i) {
-    if (row.type==='entree') {
-      fifo.push({fac:row.fac, reste:row.qte});
-      var cumul=fifo.reduce(function(s,e){return s+e.reste;},0);
-      rows.push({orig:row,index:i,entree:row.qte,sortie:0,cumul:cumul,resteInfo:null});
-    } else {
-      var rs=row.qte;
-      while(rs>0&&fifo.length>0){var f=fifo[0],d=Math.min(f.reste,rs);f.reste=Math.round((f.reste-d)*1000)/1000;rs=Math.round((rs-d)*1000)/1000;if(f.reste<=0)fifo.shift();}
-      var c2=Math.round(fifo.reduce(function(s,e){return s+e.reste;},0)*1000)/1000;
-      rows.push({orig:row,index:i,entree:0,sortie:row.qte,cumul:c2,resteInfo:null});
-    }
-  });
-  var f2=[];
-  rows.forEach(function(r) {
-    if(r.orig.type==='entree'){
-      f2.push({fac:r.orig.fac,reste:r.orig.qte});
-      r.resteInfo=f2.map(function(e){return(e.fac||'—')+': '+e.reste.toFixed(2)+' kg';}).join(' | ');
-    } else {
-      var rs2=r.orig.qte;
-      f2.forEach(function(e){if(rs2<=0)return;var d=Math.min(e.reste,rs2);e.reste=Math.round((e.reste-d)*1000)/1000;rs2=Math.round((rs2-d)*1000)/1000;});
-      f2=f2.filter(function(e){return e.reste>0;});
-      r.resteInfo=f2.length?f2.map(function(e){return(e.fac||'—')+': '+e.reste.toFixed(2)+' kg';}).join(' | '):'—';
-    }
-  });
-  return rows;
-}
-function poidsRender() {
-  var tbody=document.getElementById('poids-tbody'); if(!tbody) return;
-  var data=poidsLoad(); tbody.innerHTML='';
-  var ab=document.getElementById('poids-alertBox');
-  if(!data.length){tbody.innerHTML='<tr class="empty-msg"><td colspan="8">Aucune donnée. Ajoutez une ligne ci-dessus.</td></tr>';if(ab)ab.style.display='none';return;}
-  var rows=poidsComputeRows(data),lastC=0;
-  rows.forEach(function(r){
-    lastC=r.cumul; var isE=r.orig.type==='entree', isA=r.cumul<=5;
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td>'+r.orig.date+'</td>'
-      +'<td class="col-entree">'+(isE?r.entree.toFixed(2)+' kg':'—')+'</td>'
-      +'<td class="col-sortie">'+(!isE?r.sortie.toFixed(2)+' kg':'—')+'</td>'
-      +(isA?'<td class="col-cumul-alert">⚠ '+r.cumul.toFixed(2)+' kg</td>':'<td class="col-cumul">'+r.cumul.toFixed(2)+' kg</td>')
-      +'<td class="'+(r.resteInfo==='—'?'col-reste-zero':'col-reste')+'">'+(r.resteInfo||'—')+'</td>'
-      +'<td>'+(r.orig.fac||'—')+'</td>'
-      +'<td>'+(r.orig.frs||'—')+'</td>'
-      +'<td><button class="btn-del-poids" data-i="'+r.index+'">✕</button></td>';
-    tbody.appendChild(tr);
-  });
-  if(ab) ab.style.display=lastC<=5?'block':'none';
-}
-document.addEventListener('click', function(e){
-  if(e.target.classList.contains('btn-del-poids')){
-    var data=poidsLoad();data.splice(parseInt(e.target.getAttribute('data-i')),1);poidsSave(data);poidsRender();
-  }
-  if(e.target.id==='poids-btnAdd'){
-    var date=document.getElementById('poids-inDate').value,
-        type=document.getElementById('poids-inType').value,
-        qte=parseFloat(document.getElementById('poids-inQte').value),
-        fac=document.getElementById('poids-inFac').value.trim(),
-        frs=document.getElementById('poids-inFrs').value.trim();
-    if(!date){alert('Veuillez saisir une date.');return;}
-    if(!qte||qte<=0){alert('Veuillez saisir une quantité valide.');return;}
-    var data=poidsLoad();data.push({date,type,qte,fac,frs});poidsSave(data);poidsRender();
-    document.getElementById('poids-inQte').value='';
-    document.getElementById('poids-inFac').value='';
-    document.getElementById('poids-inFrs').value='';
-  }
-});
-
-
 /* ══ COLÉOPTÈRES ══ */
 const COL_CLE = 'col_v21';
 let colLots = [];
 
-function colSauver(){
+async function colSauver(){
+  await fbMergeArrayByKey(COL_CLE, colLots, function(l){ return l.id; });
   localStorage.setItem(COL_CLE, JSON.stringify(colLots));
-  fbSafeSave(COL_CLE, colLots);
+  return fbSafeSave(COL_CLE, colLots);
 }
 async function colSyncFromCloud(){
     const cloudData = await fbSafeLoad(COL_CLE, null);
@@ -2719,9 +2333,10 @@ function ponteDiffDays(dateStr) {
 function ponteLoadPonte() {
   try { return JSON.parse(localStorage.getItem(PONTE_KEY))||[]; } catch(e) { return []; }
 }
-function ponteSavePonte(data) {
+async function ponteSavePonte(data) {
+  await fbMergeArrayByKey(PONTE_KEY, data, function(l){ return l.uid; });
   localStorage.setItem(PONTE_KEY, JSON.stringify(data));
-  fbSafeSave(PONTE_KEY, data);
+  return fbSafeSave(PONTE_KEY, data);
 }
 async function ponteSyncFromCloud() {
     const cloudData = await fbSafeLoad(PONTE_KEY, null);
@@ -3014,9 +2629,27 @@ function nymChargerDB(){
     return data;
   }catch(e){ return {lots:[],grillesCreees:[]}; }
 }
-function nymSauverDB(db){
+async function nymSauverDB(db){
+  const cloudData = await fbSafeLoad(NYM_CLE_NYMPHES, null);
+  if (cloudData && typeof cloudData === 'object') {
+    const mergeSub = function(localSub, cloudSub){
+      if (!Array.isArray(cloudSub)) return localSub;
+      const localIds = new Set((localSub||[]).map(function(it){ return it.id; }));
+      cloudSub.forEach(function(it){
+        if (it && it.id !== undefined && !localIds.has(it.id)) {
+          localSub.push(it);
+          localIds.add(it.id);
+        }
+      });
+      return localSub;
+    };
+    if (!db.lots) db.lots = [];
+    if (!db.grillesCreees) db.grillesCreees = [];
+    mergeSub(db.lots, cloudData.lots);
+    mergeSub(db.grillesCreees, cloudData.grillesCreees);
+  }
   localStorage.setItem(NYM_CLE_NYMPHES, JSON.stringify(db));
-  fbSafeSave(NYM_CLE_NYMPHES, db);
+  return fbSafeSave(NYM_CLE_NYMPHES, db);
 }
 async function nymSyncFromCloud(){
     const cloudData = await fbSafeLoad(NYM_CLE_NYMPHES, null);
@@ -3277,7 +2910,7 @@ function nymRenderGrillesCreees(){
   }).join('');
 }
 
-function nymTransmettreVersColeopteres(grille){
+async function nymTransmettreVersColeopteres(grille){
   try{
     const raw=localStorage.getItem('col_v21');
     let lots = raw ? JSON.parse(raw) : [];
@@ -3291,6 +2924,7 @@ function nymTransmettreVersColeopteres(grille){
       c1: { bac: grille.bac, done_sec:false, done_chg:false },
       c2: null, c3: null, c4: null
     });
+    await fbMergeArrayByKey('col_v21', lots, function(l){ return l.id; });
     localStorage.setItem('col_v21', JSON.stringify(lots));
     fbSafeSave('col_v21', lots);
   }catch(e){ console.error('Erreur transmission col_v21', e); }
@@ -3890,9 +3524,10 @@ function larApplySimInput(){
 
 let larData=[],larEditId=null;
 function larLoad(){try{larData=JSON.parse(localStorage.getItem(LAR_LS))||[];}catch(e){larData=[];}}
-function larSave(){
+async function larSave(){
+  await fbMergeArrayByKey(LAR_LS, larData, function(r){ return String(r.bac)+'|'+String(r.dateEntree); });
   localStorage.setItem(LAR_LS,JSON.stringify(larData));
-  fbSafeSave(LAR_LS, larData);
+  return fbSafeSave(LAR_LS, larData);
 }
 async function larSyncFromCloud(){
     const cloudData = await fbSafeLoad(LAR_LS, null);
@@ -4318,8 +3953,7 @@ function larTransfererVersNymphes(rowIdx){
     tri:null,
     origine:'transfert_larves'
   });
-  localStorage.setItem('nymphes_v1', JSON.stringify(nymDb));
-  fbSafeSave('nymphes_v1', nymDb);
+  nymSauverDB(nymDb);
 
   row.nymphTransfere=true;
   larSave();
@@ -4356,7 +3990,7 @@ async function resetAllData() {
   if (!confirm('⚠️ Ceci va supprimer TOUTES les données de TOUS les modules (locale + cloud partagé). Cette action est irréversible pour tout le monde. Continuer ?')) return;
   if (!confirm('Confirmation finale : êtes-vous absolument sûr de vouloir tout effacer ?')) return;
 
-  const keys = ['env_elevage_v2', 'col_v21', 'nymphes_v1', 'larves_v7', 'ponte_v1', 'stock_son_ble_v4', 'stock_legumes_v1', 'stock_legumes_seuil', 'stock_levure_v1', 'stock_poids_casse_v1', 'stock_v2_son_de_ble', 'stock_v2_levure', 'stock_v2_farine', 'stock_v2_legumes'];
+  const keys = ['env_elevage_v2', 'col_v21', 'nymphes_v1', 'larves_v7', 'ponte_v1', 'stock_v2_son_de_ble', 'stock_v2_levure', 'stock_v2_farine', 'stock_v2_legumes'];
 
   // 1. Vider le localStorage
   keys.forEach(function(k) { localStorage.removeItem(k); });
@@ -4633,30 +4267,7 @@ function fermerZoomGraph(){
 
 
 /* ══ MISE À ZÉRO — MODULES DE STOCK ══ */
-function sonMiseAZero(){
-  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Son de blé. Action irréversible. Continuer ?')) return;
-  if(!confirm('Confirmation finale : vider le tableau Son de blé ?')) return;
-  sonSave([]);
-  sonRender();
-}
-function legMiseAZero(){
-  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Légumes. Action irréversible. Continuer ?')) return;
-  if(!confirm('Confirmation finale : vider le tableau Légumes ?')) return;
-  legSave([]);
-  legRender();
-}
-function levMiseAZero(){
-  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Levure. Action irréversible. Continuer ?')) return;
-  if(!confirm('Confirmation finale : vider le tableau Levure ?')) return;
-  levSave([]);
-  levRender();
-}
-function poidsMiseAZero(){
-  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Poids cassé. Action irréversible. Continuer ?')) return;
-  if(!confirm('Confirmation finale : vider le tableau Poids cassé ?')) return;
-  poidsSave([]);
-  poidsRender();
-}
+
 
 
 /* ══ EXPORT CSV — TÉLÉCHARGEMENT DES DONNÉES DE CHAQUE PAGE ══ */
@@ -4684,30 +4295,7 @@ function exportEnvironnement(){
   telechargerCSV('environnement_'+envTodayKey()+'.csv', rows);
 }
 
-function exportSonDeBle(){
-  const data=sonLoad();
-  const rows=[['Date','Type','Quantité (kg)','N° Facture','Fournisseur']];
-  data.forEach(function(r){ rows.push([r.date,r.type,r.qte,r.fac||'',r.frs||'']); });
-  telechargerCSV('son_de_ble.csv', rows);
-}
-function exportLegumes(){
-  const data=legLoad();
-  const rows=[['Date','Légume','Type','Quantité (kg)','N° Lot/Facture','Fournisseur']];
-  data.forEach(function(r){ rows.push([r.date,r.legume||'',r.type,r.qte,r.fac||'',r.frs||'']); });
-  telechargerCSV('legumes.csv', rows);
-}
-function exportLevure(){
-  const data=levLoad();
-  const rows=[['Date','Type','Quantité (kg)','N° Facture','Fournisseur']];
-  data.forEach(function(r){ rows.push([r.date,r.type,r.qte,r.fac||'',r.frs||'']); });
-  telechargerCSV('levure.csv', rows);
-}
-function exportPoidsCasse(){
-  const data=poidsLoad();
-  const rows=[['Date','Type','Quantité (kg)','N° Facture','Fournisseur']];
-  data.forEach(function(r){ rows.push([r.date,r.type,r.qte,r.fac||'',r.frs||'']); });
-  telechargerCSV('poids_casse.csv', rows);
-}
+
 
 function exportColeopteres(){
   const rows=[['Grille','Date entrée','Poids (g)','C1 Bac','C2 Bac','C3 Bac','C4 Bac']];
@@ -4926,104 +4514,6 @@ function larTravFmtDate(iso){
 }
 
 </script>
-
-<!-- LÉGUMES -->
-<div id="page-leg" class="page">
-  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">🥦 Stock Légumes</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-leg', 'legumes.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="legMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportLegumes()">📥 Télécharger CSV</button></div>
-  <div id="leg-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ <span id="leg-alertSeuil"></span> kg !</div>
-  <div style="max-width:980px;margin:0 auto 18px auto;display:flex;align-items:center;gap:10px;font-size:.82rem;color:#555;">
-    <label style="font-weight:700;text-transform:uppercase;">Seuil d'alerte (kg) :</label>
-    <input type="number" id="leg-seuilInput" min="0.01" step="0.01" value="5" style="width:80px;padding:5px 8px;border:1.5px solid #bfc9d1;border-radius:6px;font-size:.9rem;">
-  </div>
-  <div class="form-section" style="border-top:3px solid #276b3a;">
-    <h2 style="color:#276b3a;">➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="leg-inDate"></div>
-      <div class="form-group"><label>Légume</label><input type="text" id="leg-inLegume" placeholder="Carotte, Blette…"></div>
-      <div class="form-group"><label>Type</label><select id="leg-inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="leg-inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Lot / Facture</label><input type="text" id="leg-inFac" placeholder="LOT-001"></div>
-      <div class="form-group"><label>Fournisseur</label><input type="text" id="leg-inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="leg-btnAdd" style="background:#276b3a;">✔ Ajouter</button></div>
-    </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr style="background:#276b3a;">
-        <th>Date</th><th>Légume</th><th style="color:#a8e6a3;">Entrées (kg)</th><th style="color:#f5b7b1;">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Lot</th><th>N° Lot</th><th>Fournisseur</th><th>✕</th>
-      </tr></thead>
-      <tbody id="leg-tbody"></tbody>
-    </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour" style="background:#f5b87a;color:#7a3000;" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
-  </div>
-</div>
-
-<!-- LEVURE -->
-<div id="page-lev" class="page">
-  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">🫙 Stock Levure</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-lev', 'levure.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="levMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportLevure()">📥 Télécharger CSV</button></div>
-  <div id="lev-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ 5 kg ! Veuillez commander de la levure.</div>
-  <div class="form-section" style="border-top:3px solid #d4a855;">
-    <h2 style="color:#5a3a00;">➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="lev-inDate"></div>
-      <div class="form-group"><label>Type</label><select id="lev-inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="lev-inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Facture</label><input type="text" id="lev-inFac" placeholder="FAC-2026-001"></div>
-      <div class="form-group"><label>Nom FRS</label><input type="text" id="lev-inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="lev-btnAdd" style="background:#d4a855;color:#5a3a00;">✔ Ajouter</button></div>
-    </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr style="background:#d4a855;color:#5a3a00;">
-        <th>Date</th><th style="color:#2a5a1a;">Entrées (kg)</th><th style="color:#c0392b;">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Facture</th><th>N° Facture</th><th>Nom FRS</th><th>✕</th>
-      </tr></thead>
-      <tbody id="lev-tbody"></tbody>
-    </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour" style="background:#d4a855;color:#5a3a00;" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
-  </div>
-</div>
-
-<!-- POIDS CASSÉ -->
-<div id="page-poids" class="page">
-  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">⚖️ Stock Poids Cassé</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-poids', 'poids_casse.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="poidsMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportPoidsCasse()">📥 Télécharger CSV</button></div>
-  <div id="poids-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ 5 kg ! Veuillez commander du poids cassé.</div>
-  <div class="form-section" style="border-top:3px solid #1a5a54;">
-    <h2 style="color:#1a5a54;">➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="poids-inDate"></div>
-      <div class="form-group"><label>Type</label><select id="poids-inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="poids-inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Facture</label><input type="text" id="poids-inFac" placeholder="FAC-2026-001"></div>
-      <div class="form-group"><label>Nom FRS</label><input type="text" id="poids-inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="poids-btnAdd" style="background:#1a5a54;color:#fff;">✔ Ajouter</button></div>
-    </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr style="background:#1a5a54;color:#fff;">
-        <th>Date</th><th style="color:#a8e6a3;">Entrées (kg)</th><th style="color:#f5b7b1;">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Facture</th><th>N° Facture</th><th>Nom FRS</th><th>✕</th>
-      </tr></thead>
-      <tbody id="poids-tbody"></tbody>
-    </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour" style="background:#a8d8d0;color:#1a5a54;" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
-  </div>
-</div>
 
 <!-- COLÉOPTÈRES -->
 <div id="page-col" class="page">
