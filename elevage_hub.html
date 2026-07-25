@@ -845,6 +845,7 @@
       Stocks
     </button>
   </div>
+  <button class="mic-btn-full" id="voxVeilleBtn" onclick="voxBasculerVeille()" style="max-width:420px;margin:14px auto 0;">🎙️ Activer l'écoute mains-libres (« Ténébrio »)</button>
 </div>
 
 <!-- STOCKS (module consolidé : Son de blé / Levure / Farine-Poids cassé / Légumes) -->
@@ -1555,6 +1556,8 @@ function voxArreter(silencieux){
     voxActifBtn.classList.remove('listening');
     voxAppliquerLibelle(voxActifBtn, false);
     voxActifBtn=null;
+    // Une dictée manuelle vient de se terminer : si la veille mains-libres était active, on la reprend.
+    if(typeof voxVeilleSouhaitee!=='undefined' && voxVeilleSouhaitee) setTimeout(voxDemarrerVeille, 500);
   }
   if(!silencieux) {}
 }
@@ -1598,10 +1601,285 @@ function voxBasculer(btnRef, onPhrase, options){
     }
     btn.classList.remove('listening');
     voxAppliquerLibelle(btn, false);
-    if(voxActifBtn===btn) voxActifBtn=null;
+    if(voxActifBtn===btn){
+      voxActifBtn=null;
+      if(voxVeilleSouhaitee) setTimeout(voxDemarrerVeille, 500);
+    }
   };
   try{ voxRecognition.start(); }catch(e){}
 }
+
+/* ══ VEILLE VOCALE GLOBALE ("Ténébrio") — mains libres, active après connexion ══
+   Écoute en continu le mot d'appel ; une fois détecté, ouvre une fenêtre de commande
+   de quelques secondes pendant laquelle la phrase suivante est interprétée comme :
+   1) une navigation ("va sur Coléoptères"...)
+   2) une validation ("valide" / "confirme" / "enregistre")
+   3) une dictée de valeur dans le pavé/champ actif de la page en cours          */
+let voxVeilleSouhaitee = false;   // true = mode mains-libres activé par l'utilisateur
+let voxEnCommande = false;        // true = mot d'appel détecté, on attend la commande
+let voxCommandeTimer = null;
+const VOX_MOT_APPEL = /\bt[ée]n[ée]?brio\b/;
+
+const VOX_PAGES = [
+  {id:'page-accueil', label:'Accueil',        mots:['accueil']},
+  {id:'page-stocks',  label:'Stocks',         mots:['stocks','stock']},
+  {id:'page-env',     label:'Environnement',  mots:['environnement','climat']},
+  {id:'page-col',     label:'Coléoptères',    mots:['coléoptères','coleopteres','coléo','coleo']},
+  {id:'page-oeufs',   label:'Œufs / Ponte',   mots:['œufs','oeufs','ponte']},
+  {id:'page-nymphes', label:'Nymphes',        mots:['nymphes','nymphe']},
+  {id:'page-larves',  label:'Vers',           mots:['vers','larves']}
+];
+
+function voxIndicateurVeille(actif){
+  const el=document.getElementById('voxVeilleIndic');
+  if(el) el.style.display = actif ? 'flex' : 'none';
+}
+function voxIndicateurCommande(actif){
+  const el=document.getElementById('voxVeilleIndic');
+  if(el) el.classList.toggle('vox-en-commande', !!actif);
+}
+
+/* Réponse vocale audible et distincte (« Oui ») à la détection du mot d'appel */
+function voxDireOui(){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance('Oui ?');
+    u.lang = 'fr-FR';
+    u.rate = 1.05;
+    u.pitch = 1.0;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+function voxDemarrerVeille(){
+  if(!voxVeilleSouhaitee) return;
+  if(voxActifBtn) return; // une dictée manuelle est en cours, ne pas interférer
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ showToast('🎙️ Reconnaissance vocale non disponible.'); voxVeilleSouhaitee=false; return; }
+  try{ if(voxRecognition){ voxRecognition.onend=null; voxRecognition.onresult=null; voxRecognition.onerror=null; voxRecognition.stop(); } }catch(e){}
+  voxErreurFatale=false;
+  voxRecognition = new SR();
+  voxRecognition.lang='fr-FR';
+  voxRecognition.continuous=true;
+  voxRecognition.interimResults=false;
+  voxRecognition.maxAlternatives=1;
+  voxRecognition.onresult=function(e){
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(!e.results[i].isFinal) continue;
+      const transcript=e.results[i][0].transcript;
+      if(voxEnCommande){
+        voxEnCommande=false;
+        clearTimeout(voxCommandeTimer);
+        voxIndicateurCommande(false);
+        voxTraiterCommande(transcript);
+      } else if(VOX_MOT_APPEL.test(transcript.toLowerCase())){
+        voxEnCommande=true;
+        voxIndicateurCommande(true);
+        voxDireOui();
+        clearTimeout(voxCommandeTimer);
+        voxCommandeTimer=setTimeout(function(){
+          voxEnCommande=false;
+          voxIndicateurCommande(false);
+        }, 8000);
+      }
+    }
+  };
+  voxRecognition.onerror=function(e){
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){
+      voxVeilleSouhaitee=false; voxIndicateurVeille(false);
+      showToast('🎙️ Micro refusé — veille vocale désactivée.');
+    }
+  };
+  voxRecognition.onend=function(){
+    if(voxVeilleSouhaitee && !voxActifBtn){
+      try{ voxRecognition.start(); return; }catch(e){}
+    }
+  };
+  try{ voxRecognition.start(); voxIndicateurVeille(true); }catch(e){}
+}
+
+function voxArreterVeille(){
+  voxVeilleSouhaitee=false;
+  voxEnCommande=false;
+  clearTimeout(voxCommandeTimer);
+  voxIndicateurCommande(false);
+  voxIndicateurVeille(false);
+  if(voxRecognition && !voxActifBtn){
+    try{ voxRecognition.onend=null; voxRecognition.stop(); }catch(e){}
+  }
+}
+
+function voxBasculerVeille(){
+  const btn=document.getElementById('voxVeilleBtn');
+  if(voxVeilleSouhaitee){
+    voxArreterVeille();
+    localStorage.setItem('vox_veille_pref','0');
+    if(btn){ btn.classList.remove('listening'); voxAppliquerLibelle(btn, false); }
+    showToast('🎙️ Écoute mains-libres désactivée.');
+  } else {
+    voxVeilleSouhaitee=true;
+    localStorage.setItem('vox_veille_pref','1');
+    voxDemarrerVeille();
+    if(btn){ btn.classList.add('listening'); voxAppliquerLibelle(btn, true); }
+    showToast('🎙️ Écoute mains-libres activée — dites « Ténébrio » pour donner un ordre.');
+  }
+}
+
+/* Commandes vocales spécifiques à la page Nymphes */
+function voxCommandesNymphes(low){
+  const pageActive=document.querySelector('.page.active');
+  if(!pageActive || pageActive.id!=='page-nymphes') return false;
+
+  if(/\btravaux\b/.test(low)){
+    const b=document.getElementById('nymBtnTravauxVers08');
+    if(b){ b.click(); showToast('🎙️ Travaux sur les bacs (Vers 08).'); return true; }
+  }
+  if(/\bfusion(ner)?\b/.test(low)){
+    const b=document.getElementById('nymBtnFusionner');
+    if(b){ b.click(); showToast('🎙️ Fusionner.'); return true; }
+  }
+  if(/\btrier\b/.test(low)){
+    const b=document.getElementById('nymBtnTrier');
+    if(b){ b.click(); showToast('🎙️ Trier les nymphes.'); return true; }
+  }
+  if(/\bmorts?\b/.test(low)){
+    const champ=document.getElementById('nymFTriMortsAffiche');
+    if(champ && champ.offsetParent!==null){ champ.click(); showToast('🎙️ Quantité de morts.'); return true; }
+    showToast('🎙️ Ouvrez d\'abord « Trier les nymphes » pour saisir le poids des morts.');
+    return true;
+  }
+  if(/\bajout(er|e)?\b.*\bbac\b|\bbac\b.*\bajout/.test(low)){
+    const b=document.getElementById('nymBtnAjouter');
+    if(b){ b.click(); showToast('🎙️ Ajouter un bac.'); return true; }
+  }
+  return false;
+}
+
+/* Dispatcher de commande vocale (mode "Ténébrio") */
+function voxTraiterCommande(transcript){
+  const low = transcript.toLowerCase().trim();
+
+  // 1) Navigation — exige un verbe d'appel pour éviter les faux positifs (ex: "vers" = préposition)
+  const navMatch = low.match(/\b(?:va(?:s)? sur|va(?:s)? [aà]|ouvre|affiche|montre|passe (?:sur|[aà]|au|aux)|page)\s+(.+)/);
+  if(navMatch){
+    const cible = navMatch[1];
+    const page = VOX_PAGES.find(function(p){ return p.mots.some(function(m){ return cible.indexOf(m)!==-1; }); });
+    if(page){ showPage(page.id); showToast('🎙️ Navigation : '+page.label); return; }
+  }
+
+  // 2) Commandes spécifiques à la page Nymphes
+  if(voxCommandesNymphes(low)) return;
+
+  // 3) Validation générique
+  if(/\b(valide|valider|confirme|confirmer|enregistre|enregistrer)\b/.test(low)){
+    voxValiderContexte();
+    return;
+  }
+
+  // 4) Dictée de valeur vers le pavé/champ actif
+  if(voxDicterValeur(transcript)) return;
+
+  showToast('🎙️ Commande non reconnue : «'+transcript+'»');
+}
+
+/* Clique/valide l'élément pertinent selon l'overlay ouvert, sinon action de sauvegarde par défaut */
+function voxValiderContexte(){
+  if(document.getElementById('stkNumpadOverlay') && document.getElementById('stkNumpadOverlay').classList.contains('open')){
+    stkNumpadOk(); showToast('🎙️ Validé.'); return true;
+  }
+  if(document.getElementById('colNumpadOverlay') && document.getElementById('colNumpadOverlay').classList.contains('open')){
+    colNumpadOk(); showToast('🎙️ Validé.'); return true;
+  }
+  if(document.getElementById('colModalChgBac') && document.getElementById('colModalChgBac').classList.contains('open')){
+    var b=document.getElementById('colBtnConfirmChg'); if(b) b.click(); showToast('🎙️ Validé.'); return true;
+  }
+  if(document.getElementById('colModalSupp') && document.getElementById('colModalSupp').classList.contains('open')){
+    var b=document.getElementById('colBtnConfirmSupp'); if(b) b.click(); showToast('🎙️ Validé.'); return true;
+  }
+  if(document.getElementById('colModalEffacer') && document.getElementById('colModalEffacer').classList.contains('open')){
+    var b=document.getElementById('colBtnConfirmEffacer'); if(b) b.click(); showToast('🎙️ Validé.'); return true;
+  }
+  if(document.getElementById('ponteModalSortie') && document.getElementById('ponteModalSortie').classList.contains('open')){
+    ponteConfirmSortie(); showToast('🎙️ Validé.'); return true;
+  }
+  if(document.getElementById('ponteModalFusion') && document.getElementById('ponteModalFusion').classList.contains('open')){
+    ponteConfirmFusion(); showToast('🎙️ Validé.'); return true;
+  }
+  if(document.getElementById('ponteModalReset') && document.getElementById('ponteModalReset').classList.contains('open')){
+    ponteConfirmReset(); showToast('🎙️ Validé.'); return true;
+  }
+  if(document.getElementById('nymKeypadOverlay') && document.getElementById('nymKeypadOverlay').classList.contains('visible')){
+    var b=document.getElementById('nymKpValider'); if(b) b.click(); showToast('🎙️ Validé.'); return true;
+  }
+  if(document.getElementById('larKpadOverlay') && document.getElementById('larKpadOverlay').classList.contains('open')){
+    larCommitKpad(); showToast('🎙️ Validé.'); return true;
+  }
+  const pageActive=document.querySelector('.page.active');
+  if(pageActive && pageActive.id==='page-env' && typeof enregistrer==='function'){
+    enregistrer(); showToast('🎙️ Environnement enregistré.'); return true;
+  }
+  showToast('🎙️ Rien à valider ici.');
+  return false;
+}
+
+/* Dictée de valeur numérique vers le pavé actuellement ouvert, ou vers Environnement */
+function voxDicterValeur(transcript){
+  const d1=document.getElementById('stkNumpadOverlay');
+  if(d1 && d1.classList.contains('open')){
+    const v=envParseNombreVocal(transcript);
+    if(v===null) return false;
+    document.getElementById('stkNumpadDisplay').textContent=String(v);
+    showToast('🎙️ Valeur : '+v); return true;
+  }
+  const d2=document.getElementById('colNumpadOverlay');
+  if(d2 && d2.classList.contains('open')){
+    const v=envParseNombreVocal(transcript);
+    if(v===null) return false;
+    document.getElementById('colNumpadDisplay').textContent=String(Math.round(v));
+    showToast('🎙️ Valeur : '+Math.round(v)); return true;
+  }
+  const d3=document.getElementById('nymKeypadOverlay');
+  if(d3 && d3.classList.contains('visible')){
+    const v=envParseNombreVocal(transcript);
+    if(v===null) return false;
+    nymKpValeur=String(v);
+    document.getElementById('nymKeypadDisplay').textContent=nymKpValeur;
+    showToast('🎙️ Valeur : '+v); return true;
+  }
+  const d4=document.getElementById('larKpadOverlay');
+  if(d4 && d4.classList.contains('open')){
+    const v=envParseNombreVocal(transcript);
+    if(v===null) return false;
+    larKVal=String(v);
+    larRefreshKDisp();
+    showToast('🎙️ Valeur : '+v); return true;
+  }
+  const pageActive=document.querySelector('.page.active');
+  if(pageActive && pageActive.id==='page-env'){
+    const low=transcript.toLowerCase();
+    if(/temp[ée]rature/.test(low)){
+      const v=envParseNombreVocal(low.replace(/temp[ée]rature/,''));
+      if(v!==null){ envSetVoice('temp', v); showToast('🎙️ Température : '+v); return true; }
+    }
+    if(/hygrom[ée]trie|humidit[ée]/.test(low)){
+      const v=envParseNombreVocal(low.replace(/hygrom[ée]trie|humidit[ée]/,''));
+      if(v!==null){ envSetVoice('hygro', v); showToast('🎙️ Hygrométrie : '+v); return true; }
+    }
+  }
+  return false;
+}
+
+/* Reprise automatique de la veille après connexion, si l'utilisateur l'avait activée */
+window.addEventListener('fbReady', function(){
+  if(localStorage.getItem('vox_veille_pref')==='1'){
+    voxVeilleSouhaitee = true;
+    setTimeout(voxDemarrerVeille, 800);
+    voxIndicateurVeille(true);
+    const btn=document.getElementById('voxVeilleBtn');
+    if(btn){ btn.classList.add('listening'); voxAppliquerLibelle(btn, true); }
+  }
+});
 
 /* ══ Saisie vocale (Température / Hygrométrie) ══ */
 function envVoiceStart(field){
