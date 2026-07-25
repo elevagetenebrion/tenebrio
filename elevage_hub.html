@@ -954,8 +954,9 @@ async function stkSave(type, rows){
 }
 async function stkSyncFromCloud(){
   for (const type in STK_TYPES){
-    const cloudData = await fbSafeLoad(stkKey(type), null);
-    if (cloudData !== null) localStorage.setItem(stkKey(type), JSON.stringify(cloudData));
+    let rows = stkLoad(type);
+    await fbMergeArrayByKey(stkKey(type), rows, function(r){ return r.id; });
+    localStorage.setItem(stkKey(type), JSON.stringify(rows));
   }
 }
 
@@ -1911,8 +1912,9 @@ async function colSauver(){
   return fbSafeSave(COL_CLE, colLots);
 }
 async function colSyncFromCloud(){
-    const cloudData = await fbSafeLoad(COL_CLE, null);
-  if (cloudData !== null) { colLots = cloudData; localStorage.setItem(COL_CLE, JSON.stringify(cloudData)); }
+  if (!colLots || colLots.length === 0) { try{ colLots = JSON.parse(localStorage.getItem(COL_CLE))||[]; }catch(e){ colLots=[]; } }
+  await fbMergeArrayByKey(COL_CLE, colLots, function(l){ return l.id; });
+  localStorage.setItem(COL_CLE, JSON.stringify(colLots));
 }
 function colDateStr(d){ return d.toISOString().slice(0,10); }
 function colAddJours(str,n){ const d=new Date(str+'T12:00:00'); d.setDate(d.getDate()+n); return colDateStr(d); }
@@ -2339,8 +2341,9 @@ async function ponteSavePonte(data) {
   return fbSafeSave(PONTE_KEY, data);
 }
 async function ponteSyncFromCloud() {
-    const cloudData = await fbSafeLoad(PONTE_KEY, null);
-  if (cloudData !== null) { localStorage.setItem(PONTE_KEY, JSON.stringify(cloudData)); }
+  let data = ponteLoadPonte();
+  await fbMergeArrayByKey(PONTE_KEY, data, function(l){ return l.uid; });
+  localStorage.setItem(PONTE_KEY, JSON.stringify(data));
 }
 
 function ponteTousNumerosUtilises(excludeUids) {
@@ -2652,8 +2655,26 @@ async function nymSauverDB(db){
   return fbSafeSave(NYM_CLE_NYMPHES, db);
 }
 async function nymSyncFromCloud(){
-    const cloudData = await fbSafeLoad(NYM_CLE_NYMPHES, null);
-  if (cloudData !== null) { localStorage.setItem(NYM_CLE_NYMPHES, JSON.stringify(cloudData)); }
+  const db = nymChargerDB();
+  const cloudData = await fbSafeLoad(NYM_CLE_NYMPHES, null);
+  if (cloudData && typeof cloudData === 'object') {
+    const mergeSub = function(localSub, cloudSub){
+      if (!Array.isArray(cloudSub)) return localSub;
+      const localIds = new Set((localSub||[]).map(function(it){ return it.id; }));
+      cloudSub.forEach(function(it){
+        if (it && it.id !== undefined && !localIds.has(it.id)) {
+          localSub.push(it);
+          localIds.add(it.id);
+        }
+      });
+      return localSub;
+    };
+    if (!db.lots) db.lots = [];
+    if (!db.grillesCreees) db.grillesCreees = [];
+    mergeSub(db.lots, cloudData.lots);
+    mergeSub(db.grillesCreees, cloudData.grillesCreees);
+  }
+  localStorage.setItem(NYM_CLE_NYMPHES, JSON.stringify(db));
 }
 let NYM_DB = null;
 
@@ -3530,8 +3551,9 @@ async function larSave(){
   return fbSafeSave(LAR_LS, larData);
 }
 async function larSyncFromCloud(){
-    const cloudData = await fbSafeLoad(LAR_LS, null);
-  if (cloudData !== null) { larData = cloudData; localStorage.setItem(LAR_LS, JSON.stringify(cloudData)); }
+  if (!larData || larData.length === 0) { try{ larData = JSON.parse(localStorage.getItem(LAR_LS))||[]; }catch(e){ larData=[]; } }
+  await fbMergeArrayByKey(LAR_LS, larData, function(r){ return String(r.bac)+'|'+String(r.dateEntree); });
+  localStorage.setItem(LAR_LS, JSON.stringify(larData));
 }
 
 let larKRow=null,larKField=null,larKVal='';
