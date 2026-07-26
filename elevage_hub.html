@@ -878,6 +878,20 @@
           <option value="page-larves">Aller à : Vers</option>
           <option value="page-stocks">Aller à : Stocks</option>
           <option value="valider">Valider / Confirmer</option>
+          <option value="actualiser">Actualiser la page</option>
+          <option value="stk-miseazero">Stocks : Mise à zéro</option>
+          <option value="stk-export">Stocks : Exporter CSV</option>
+          <option value="env-meteo">Environnement : Météo</option>
+          <option value="env-absences">Environnement : Calendrier des absences</option>
+          <option value="env-graphique">Environnement : Graphique</option>
+          <option value="env-dicter-solution">Environnement : Dicter la solution</option>
+          <option value="col-effacer">Coléoptères : Effacer le tableau</option>
+          <option value="col-dicter-lot">Coléoptères : Dicter le lot</option>
+          <option value="col-rechercher">Coléoptères : Rechercher</option>
+          <option value="oeufs-ajouter">Œufs : Ajouter une ligne</option>
+          <option value="oeufs-reset">Œufs : Réinitialiser</option>
+          <option value="lar-ajouter">Vers : Ajouter</option>
+          <option value="lar-travaux">Vers : Travaux sur les bacs</option>
           <option value="nym-ajouter">Nymphes : Ajouter un bac</option>
           <option value="nym-fusionner">Nymphes : Fusionner</option>
           <option value="nym-trier">Nymphes : Trier les nymphes</option>
@@ -1709,7 +1723,13 @@ let voxDernierEntendu = ''; // dernier texte non reconnu, pour pré-remplir le f
 const VOX_LABELS = {
   'page-accueil':'Aller à : Accueil', 'page-env':'Aller à : Environnement', 'page-col':'Aller à : Coléoptères',
   'page-oeufs':'Aller à : Œufs', 'page-nymphes':'Aller à : Nymphes', 'page-larves':'Aller à : Vers', 'page-stocks':'Aller à : Stocks',
-  'valider':'Valider / Confirmer',
+  'valider':'Valider / Confirmer', 'actualiser':'Actualiser la page',
+  'stk-miseazero':'Stocks : Mise à zéro', 'stk-export':'Stocks : Exporter CSV',
+  'env-meteo':'Environnement : Météo', 'env-absences':'Environnement : Calendrier des absences', 'env-graphique':'Environnement : Graphique',
+  'env-dicter-solution':'Environnement : Dicter la solution',
+  'col-effacer':'Coléoptères : Effacer le tableau', 'col-dicter-lot':'Coléoptères : Dicter le lot', 'col-rechercher':'Coléoptères : Rechercher',
+  'oeufs-ajouter':'Œufs : Ajouter une ligne', 'oeufs-reset':'Œufs : Réinitialiser',
+  'lar-ajouter':'Vers : Ajouter', 'lar-travaux':'Vers : Travaux sur les bacs',
   'nym-ajouter':'Nymphes : Ajouter un bac', 'nym-fusionner':'Nymphes : Fusionner',
   'nym-trier':'Nymphes : Trier les nymphes', 'nym-morts':'Nymphes : Quantité de morts',
   'nym-travaux':'Nymphes : Travaux sur les bacs'
@@ -1912,6 +1932,99 @@ function voxBasculerVeille(){
   }
 }
 
+/* Alphabet phonétique français, pour dicter une lettre de grille (ex: "grille ache" -> H) */
+const VOX_LETTRES = {
+  'a':'A','b':'B','be':'B','ce':'C','se':'C','d':'D','de':'D','e':'E','eu':'E',
+  'f':'F','effe':'F','ef':'F','g':'G','ge':'G','je':'G','h':'H','ache':'H','i':'I',
+  'j':'J','ji':'J','k':'K','ka':'K','l':'L','elle':'L','m':'M','emme':'M','aime':'M',
+  'n':'N','enne':'N','aine':'N','o':'O','p':'P','pe':'P','q':'Q','ku':'Q','cu':'Q',
+  'r':'R','erre':'R','s':'S','esse':'S','t':'T','te':'T','u':'U','v':'V','ve':'V',
+  'w':'W','double ve':'W','double v':'W','x':'X','ixe':'X','iks':'X','y':'Y','i grec':'Y','z':'Z','zede':'Z'
+};
+function voxLettreDepuis(texte){
+  const n = voxNormaliser(texte).trim();
+  if(VOX_LETTRES.hasOwnProperty(n)) return VOX_LETTRES[n];
+  if(/^[a-z]$/.test(n)) return n.toUpperCase();
+  return null;
+}
+function voxCommandesStocks(low){
+  const pageActive=document.querySelector('.page.active');
+  if(!pageActive || pageActive.id!=='page-stocks') return false;
+  const n = voxNormaliser(low);
+  if(voxAliasCorrespond(low,'stk-miseazero') || /\b(remise a zero|mise a zero)\b/.test(n)){
+    stkMiseAZero(); voxJournal('🎙️ Mise à zéro (Stocks).'); return true;
+  }
+  if(voxAliasCorrespond(low,'stk-export') || /\b(telecharger|exporter|export)\b/.test(n)){
+    stkExportCSV(); voxJournal('🎙️ Export CSV (Stocks).'); return true;
+  }
+  return false;
+}
+
+/* Commandes vocales spécifiques à la page Environnement */
+function voxCommandesEnv(low){
+  const pageActive=document.querySelector('.page.active');
+  if(!pageActive || pageActive.id!=='page-env') return false;
+  const n = voxNormaliser(low);
+  if(voxAliasCorrespond(low,'env-meteo') || /\bmeteo\b/.test(n)){
+    fetchMeteo(); voxJournal('🎙️ Météo.'); return true;
+  }
+  if(voxAliasCorrespond(low,'env-absences') || /\babsences?\b/.test(n)){
+    envOuvrirCalendrierAbsences(); voxJournal('🎙️ Calendrier des absences.'); return true;
+  }
+  if(voxAliasCorrespond(low,'env-graphique') || /\bgraphique\b/.test(n)){
+    envOuvrirGraphPopup(); voxJournal('🎙️ Graphique.'); return true;
+  }
+  if(voxAliasCorrespond(low,'env-dicter-solution') || /\bdicter la solution\b|\bsolution\b/.test(n)){
+    envVoiceStartText('envSolutionApportee','solMicBtn'); voxJournal('🎙️ Dictée de la solution — parlez, puis dites « enregistrer ».'); return true;
+  }
+  return false;
+}
+
+/* Commandes vocales spécifiques à la page Coléoptères */
+function voxCommandesCol(low){
+  const pageActive=document.querySelector('.page.active');
+  if(!pageActive || pageActive.id!=='page-col') return false;
+  const n = voxNormaliser(low);
+  if(voxAliasCorrespond(low,'col-effacer') || /\b(effacer|vider le tableau)\b/.test(n)){
+    colOuvrirModalEffacer(); voxJournal('🎙️ Effacer le tableau — dites « valide » pour confirmer.'); return true;
+  }
+  if(voxAliasCorrespond(low,'col-dicter-lot') || /\bdicter le lot\b/.test(n)){
+    colDicterLot(); voxJournal('🎙️ Dictée du lot — parlez (grille, bac, poids, date), puis dites « enregistrer ».'); return true;
+  }
+  if(voxAliasCorrespond(low,'col-rechercher') || /\brechercher\b/.test(n)){
+    colDicterRecherche(); voxJournal('🎙️ Recherche — dites la grille ou le numéro de bac.'); return true;
+  }
+  return false;
+}
+
+/* Commandes vocales spécifiques à la page Œufs */
+function voxCommandesOeufs(low){
+  const pageActive=document.querySelector('.page.active');
+  if(!pageActive || pageActive.id!=='page-oeufs') return false;
+  const n = voxNormaliser(low);
+  if(voxAliasCorrespond(low,'oeufs-ajouter') || /\b(ajout(er|e)?|nouveau)\b/.test(n)){
+    ponteAjouterLigne(); voxJournal('🎙️ Ajouter une ligne (Œufs).'); return true;
+  }
+  if(voxAliasCorrespond(low,'oeufs-reset') || /\b(remise a zero|mise a zero|reinitialiser)\b/.test(n)){
+    ponteOuvrirReset(); voxJournal('🎙️ Réinitialiser — dites « valide » pour confirmer.'); return true;
+  }
+  return false;
+}
+
+/* Commandes vocales spécifiques à la page Vers */
+function voxCommandesLarves(low){
+  const pageActive=document.querySelector('.page.active');
+  if(!pageActive || pageActive.id!=='page-larves') return false;
+  const n = voxNormaliser(low);
+  if(voxAliasCorrespond(low,'lar-ajouter') || /\b(ajout(er|e)?|nouveau lot)\b/.test(n)){
+    larOpenAddModal(); voxJournal('🎙️ Ajouter (Vers).'); return true;
+  }
+  if(voxAliasCorrespond(low,'lar-travaux') || /\btravaux\b/.test(n)){
+    larTravauxOuvrir(); voxJournal('🎙️ Travaux sur les bacs (Vers).'); return true;
+  }
+  return false;
+}
+
 /* Commandes vocales spécifiques à la page Nymphes */
 function voxCommandesNymphes(low){
   const pageActive=document.querySelector('.page.active');
@@ -1953,20 +2066,47 @@ function voxTraiterCommande(transcript){
   const page = voxTrouverPage(low);
   if(page){ showPage(page.id); voxJournal('🎙️ Navigation : '+page.label); return; }
 
-  // 2) Commandes spécifiques à la page Nymphes
+  // 2) Actualiser (recharge la page active depuis le cloud)
+  if(voxAliasCorrespond(low,'actualiser') || /\bactualiser\b/.test(voxNormaliser(low))){
+    voxActualiserPage(); return;
+  }
+
+  // 3) Commandes spécifiques à la page active
+  if(voxCommandesStocks(low)) return;
+  if(voxCommandesEnv(low)) return;
+  if(voxCommandesCol(low)) return;
+  if(voxCommandesOeufs(low)) return;
+  if(voxCommandesLarves(low)) return;
   if(voxCommandesNymphes(low)) return;
 
-  // 3) Validation générique
-  if(voxAliasCorrespond(low,'valider') || /\b(valide|valider|confirme|confirmer|enregistre|enregistrer)\b/.test(low)){
+  // 4) Validation générique
+  if(voxAliasCorrespond(low,'valider') || /\b(valide|valider|confirme|confirmer|confirmation|enregistre|enregistrer)\b/.test(low)){
     voxValiderContexte();
     return;
   }
 
-  // 4) Dictée de valeur vers le pavé/champ actif
+  // 5) Dictée de valeur vers le pavé/champ actif
   if(voxDicterValeur(transcript)) return;
 
   voxDernierEntendu = voxNormaliser(transcript);
   voxJournal('🎙️ Compris : «'+transcript+'» — commande non reconnue.');
+}
+
+/* Recharge les données de la page actuellement affichée depuis le cloud */
+function voxActualiserPage(){
+  const pageActive=document.querySelector('.page.active');
+  if(!pageActive) return;
+  const id=pageActive.id;
+  const actions={
+    'page-stocks':function(){ stkSyncFromCloud().then(function(){ stkRender(); }); },
+    'page-env':function(){ envSyncFromCloud().then(function(){ initEnvPage(); }); },
+    'page-col':function(){ colSyncFromCloud().then(function(){ initColPage(); }); },
+    'page-oeufs':function(){ ponteSyncFromCloud().then(function(){ initOeufsPage(); }); },
+    'page-nymphes':function(){ nymSyncFromCloud().then(function(){ initNymphesPage(); }); },
+    'page-larves':function(){ larSyncFromCloud().then(function(){ initLarvesPage(); }); }
+  };
+  if(actions[id]){ actions[id](); voxJournal('🎙️ Actualisation…'); }
+  else voxJournal('🎙️ Rien à actualiser ici.');
 }
 
 /* Clique/valide l'élément pertinent selon l'overlay ouvert, sinon action de sauvegarde par défaut */
@@ -2004,6 +2144,9 @@ function voxValiderContexte(){
   const pageActive=document.querySelector('.page.active');
   if(pageActive && pageActive.id==='page-env' && typeof enregistrer==='function'){
     enregistrer(); voxJournal('🎙️ Environnement enregistré.'); return true;
+  }
+  if(pageActive && pageActive.id==='page-col' && typeof colEnregistrer==='function'){
+    colEnregistrer(); voxJournal('🎙️ Coléoptères enregistré.'); return true;
   }
   voxJournal('🎙️ Rien à valider ici.');
   return false;
@@ -2048,8 +2191,8 @@ function voxDicterValeur(transcript){
       const v=envParseNombreVocal(low.replace(/temp[ée]rature/,''));
       if(v!==null){ envSetVoice('temp', v); voxJournal('🎙️ Température : '+v); return true; }
     }
-    if(/hygrom[ée]trie|humidit[ée]/.test(low)){
-      const v=envParseNombreVocal(low.replace(/hygrom[ée]trie|humidit[ée]/,''));
+    if(/hygrom[ée]trie|hydrom[ée]trie|humidit[ée]/.test(low)){
+      const v=envParseNombreVocal(low.replace(/hygrom[ée]trie|hydrom[ée]trie|humidit[ée]/,''));
       if(v!==null){ envSetVoice('hygro', v); voxJournal('🎙️ Hygrométrie : '+v); return true; }
     }
   }
@@ -2676,7 +2819,14 @@ function colParserLotVocal(transcript){
   const res={grille:null,bac:null,poids:null,date:null};
   let m=low.match(/\bdouble\s+([a-zàâ])\b/);
   if(m) res.grille=(m[1]+m[1]).toUpperCase();
-  else { m=low.match(/grille\s+([a-zàâ]{1,2})\b/); if(m) res.grille=m[1].toUpperCase(); }
+  else {
+    m=low.match(/grille\s+([a-zàâ]{1,2})\b/);
+    if(m) res.grille=m[1].toUpperCase();
+    else {
+      m=low.match(/grille\s+([a-zàâéèêëœ' -]{1,12})/);
+      if(m){ const l=voxLettreDepuis(m[1]); if(l) res.grille=l; }
+    }
+  }
   m=low.match(/bac\s*(?:num[ée]ro|n[°o]?)?\s*(\d+)/);
   if(m) res.bac=parseInt(m[1],10);
   m=low.match(/poids\s*(?:de|:)?\s*(\d+(?:[.,]\d+)?)/) || low.match(/(\d+(?:[.,]\d+)?)\s*gramme/);
@@ -2717,6 +2867,7 @@ function colDicterRecherche(){
     const low=transcript.toLowerCase().trim();
     let val=null,m;
     m=low.match(/grille\s+([a-zàâ]{1,2})/); if(m) val=m[1].toUpperCase();
+    if(!val){ m=low.match(/grille\s+([a-zàâéèêëœ' -]{1,12})/); if(m){ const l=voxLettreDepuis(m[1]); if(l) val=l; } }
     if(!val){ m=low.match(/bac\s*(?:num[ée]ro|n[°o]?)?\s*(\d+)/); if(m) val=m[1]; }
     if(!val){ const n=envParseNombreVocal(low); if(n!==null && !isNaN(n)) val=String(n); }
     if(!val){ m=low.match(/\b([a-zàâ]{1,2})\b/); if(m) val=m[1].toUpperCase(); }
