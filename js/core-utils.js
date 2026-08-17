@@ -3,7 +3,7 @@ async function resetAllData() {
   if (!confirm('⚠️ Ceci va supprimer TOUTES les données de TOUS les modules (locale + cloud partagé). Cette action est irréversible pour tout le monde. Continuer ?')) return;
   if (!confirm('Confirmation finale : êtes-vous absolument sûr de vouloir tout effacer ?')) return;
 
-  const keys = ['env_elevage_v2', 'col_v21', 'nymphes_v1', 'larves_v7', 'ponte_v1', 'stock_son_ble_v4', 'stock_legumes_v1', 'stock_legumes_seuil', 'stock_levure_v1', 'stock_poids_casse_v1', 'stock_v2_son_de_ble', 'stock_v2_levure', 'stock_v2_farine', 'stock_v2_legumes'];
+  const keys = ['env_elevage_v2', 'col_v21', 'nymphes_v1', 'larves_v7', 'ponte_v1', 'stock_v2_son_de_ble', 'stock_v2_levure', 'stock_v2_farine', 'stock_v2_legumes'];
 
   // 1. Vider le localStorage
   keys.forEach(function(k) { localStorage.removeItem(k); });
@@ -213,11 +213,6 @@ function envSauverAbsences(absences){
   localStorage.setItem(ENV_ABSENCES_KEY, JSON.stringify(absences));
   fbSafeSave(ENV_ABSENCES_KEY, absences);
 }
-function envEstJourAbsence(dateISO){
-  const absences = envChargerAbsences();
-  return absences.some(function(a){ return dateISO >= a.debut && dateISO <= a.fin; });
-}
-
 function envOuvrirCalendrierAbsences(){
   document.getElementById('envAbsenceOverlay').style.display = 'flex';
   const today = envTodayKey();
@@ -279,33 +274,6 @@ function fermerZoomGraph(){
 }
 
 
-/* ══ MISE À ZÉRO — MODULES DE STOCK ══ */
-function sonMiseAZero(){
-  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Son de blé. Action irréversible. Continuer ?')) return;
-  if(!confirm('Confirmation finale : vider le tableau Son de blé ?')) return;
-  sonSave([]);
-  sonRender();
-}
-function legMiseAZero(){
-  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Légumes. Action irréversible. Continuer ?')) return;
-  if(!confirm('Confirmation finale : vider le tableau Légumes ?')) return;
-  legSave([]);
-  legRender();
-}
-function levMiseAZero(){
-  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Levure. Action irréversible. Continuer ?')) return;
-  if(!confirm('Confirmation finale : vider le tableau Levure ?')) return;
-  levSave([]);
-  levRender();
-}
-function poidsMiseAZero(){
-  if(!confirm('⚠️ Ceci va supprimer toutes les lignes du tableau Poids cassé. Action irréversible. Continuer ?')) return;
-  if(!confirm('Confirmation finale : vider le tableau Poids cassé ?')) return;
-  poidsSave([]);
-  poidsRender();
-}
-
-
 /* ══ EXPORT CSV — TÉLÉCHARGEMENT DES DONNÉES DE CHAQUE PAGE ══ */
 function telechargerCSV(filename, rows){
   const csv = rows.map(r => r.map(v => {
@@ -329,31 +297,6 @@ function exportEnvironnement(){
     });
   });
   telechargerCSV('environnement_'+envTodayKey()+'.csv', rows);
-}
-
-function exportSonDeBle(){
-  const data=sonLoad();
-  const rows=[['Date','Type','Quantité (kg)','N° Facture','Fournisseur']];
-  data.forEach(function(r){ rows.push([r.date,r.type,r.qte,r.fac||'',r.frs||'']); });
-  telechargerCSV('son_de_ble.csv', rows);
-}
-function exportLegumes(){
-  const data=legLoad();
-  const rows=[['Date','Légume','Type','Quantité (kg)','N° Lot/Facture','Fournisseur']];
-  data.forEach(function(r){ rows.push([r.date,r.legume||'',r.type,r.qte,r.fac||'',r.frs||'']); });
-  telechargerCSV('legumes.csv', rows);
-}
-function exportLevure(){
-  const data=levLoad();
-  const rows=[['Date','Type','Quantité (kg)','N° Facture','Fournisseur']];
-  data.forEach(function(r){ rows.push([r.date,r.type,r.qte,r.fac||'',r.frs||'']); });
-  telechargerCSV('levure.csv', rows);
-}
-function exportPoidsCasse(){
-  const data=poidsLoad();
-  const rows=[['Date','Type','Quantité (kg)','N° Facture','Fournisseur']];
-  data.forEach(function(r){ rows.push([r.date,r.type,r.qte,r.fac||'',r.frs||'']); });
-  telechargerCSV('poids_casse.csv', rows);
 }
 
 function exportColeopteres(){

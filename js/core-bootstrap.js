@@ -87,13 +87,6 @@ function showPage(id) {
     var stkDateEl = document.getElementById('stkInDate');
     if (stkDateEl) stkDateEl.value = new Date().toISOString().split('T')[0];
   }
-  if (id === 'page-son') {
-    sonSyncFromCloud().then(function(){ sonRender(); });
-    document.getElementById('inDate').value = new Date().toISOString().split('T')[0];
-  }
-  if (id === 'page-leg') { legLoadSyncFromCloud().then(function(){ legRender(); }); document.getElementById('leg-inDate').value = new Date().toISOString().split('T')[0]; }
-  if (id === 'page-lev') { levLoadSyncFromCloud().then(function(){ levRender(); }); document.getElementById('lev-inDate').value = new Date().toISOString().split('T')[0]; }
-  if (id === 'page-poids') { poidsLoadSyncFromCloud().then(function(){ poidsRender(); }); document.getElementById('poids-inDate').value = new Date().toISOString().split('T')[0]; }
   if (id === 'page-env') { envSyncFromCloud().then(function(){ initEnvPage(); }); }
   if (id === 'page-col') { colSyncFromCloud().then(function(){ initColPage(); }); }
   if (id === 'page-oeufs') { ponteSyncFromCloud().then(function(){ initOeufsPage(); }); }

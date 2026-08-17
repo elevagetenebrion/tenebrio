@@ -99,6 +99,7 @@ function envVoiceStartText(textareaId, btnId){
     if(ta){
       const sep = (ta.value && !/[\s\n]$/.test(ta.value)) ? ' ' : '';
       ta.value = ta.value + sep + transcript;
+      if(ta.id === 'envSolutionApportee') envSauverSolution();
     }
     showToast('🎤 Texte ajouté : «'+transcript+'»');
   };

@@ -62,9 +62,6 @@ function nymToast(msg){
   t._timer=setTimeout(function(){t.classList.remove('show');},2400);
 }
 
-function nymBacsUtilisesNymphes(excludeLotId){
-  return NYM_DB.lots.filter(function(l){return l.id!==excludeLotId;}).map(function(l){return l.bac;});
-}
 function nymBacsUtilisesColeopteres(){
   try{
     const raw=localStorage.getItem('col_v21');

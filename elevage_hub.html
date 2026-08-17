@@ -251,6 +251,7 @@
 
 <div class="imprimer-bar" style="max-width:600px;">
   <button class="btn-imprimer" onclick="exporterEnPDF('page-env', 'environnement.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button>
+  <button class="btn-mise-a-zero" style="margin-left:10px;" onclick="envViderToutesLesDonnees()">🔄 Mise à zéro</button>
   <button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportEnvironnement()">📥 Télécharger CSV</button>
 </div>
 
@@ -341,7 +342,7 @@
 <div class="obs-box" style="display:block;">
   <div class="obs-title">✅ Solution apportée</div>
   <button class="mic-btn-full" id="solMicBtn" onclick="envVoiceStartText('envSolutionApportee','solMicBtn')">🎤 Dicter la solution</button>
-  <textarea id="envSolutionApportee" placeholder="Notez ici la solution apportée suite aux observations (ventilation, ajustement, intervention...)" style="width:100%;min-height:120px;border:1.5px solid var(--border);border-radius:8px;padding:12px;font-family:inherit;font-size:.92rem;resize:vertical;margin-top:8px;"></textarea>
+  <textarea id="envSolutionApportee" onchange="envSauverSolution()" placeholder="Notez ici la solution apportée suite aux observations (ventilation, ajustement, intervention...)" style="width:100%;min-height:120px;border:1.5px solid var(--border);border-radius:8px;padding:12px;font-family:inherit;font-size:.92rem;resize:vertical;margin-top:8px;"></textarea>
 
 </div>
 
@@ -427,150 +428,16 @@
   </div>
 </div>
 
-<!-- SON DE BLÉ -->
-<div id="page-son" class="page">
-  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1>🌾 Stock de Son de Blé</h1>
-  <div class="imprimer-bar" style="max-width:980px;">
-    <button class="btn-imprimer" onclick="exporterEnPDF('page-son', 'son_de_ble.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button>
-    <button class="btn-mise-a-zero" style="margin-left:10px;" onclick="sonMiseAZero()">🔄 Mise à zéro</button>
-    <button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportSonDeBle()">📥 Télécharger CSV</button>
-  </div>
-  <div id="alertBox">⚠ STOCK BAS — Cumul ≤ 20 kg !</div>
-  <div class="form-section">
-    <h2>➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="inDate"></div>
-      <div class="form-group"><label>Type</label><select id="inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Facture</label><input type="text" id="inFac" placeholder="FAC-2026-001"></div>
-      <div class="form-group"><label>Nom FRS</label><input type="text" id="inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="btnAdd">✔ Ajouter</button></div>
-    </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr>
-        <th>Date</th><th style="color:#a8e6a3">Entrées (kg)</th><th style="color:#f5b7b1">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Facture</th><th>N° Facture</th><th>Nom FRS</th><th>✕</th>
-      </tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour btn-retour-vert" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script src="js/core-bootstrap.js"></script>
 <script src="js/modules/environnement.js"></script>
-<script src="js/modules/legacy-stocks.js"></script>
 <script src="js/modules/coleopteres.js"></script>
 <script src="js/modules/oeufs.js"></script>
 <script src="js/modules/nymphes.js"></script>
 <script src="js/modules/larves.js"></script>
 <script src="js/core-utils.js"></script>
 <script src="js/modules/bacs.js"></script>
-
-<!-- LÉGUMES -->
-<div id="page-leg" class="page">
-  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">🥦 Stock Légumes</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-leg', 'legumes.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="legMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportLegumes()">📥 Télécharger CSV</button></div>
-  <div id="leg-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ <span id="leg-alertSeuil"></span> kg !</div>
-  <div style="max-width:980px;margin:0 auto 18px auto;display:flex;align-items:center;gap:10px;font-size:.82rem;color:#555;">
-    <label style="font-weight:700;text-transform:uppercase;">Seuil d'alerte (kg) :</label>
-    <input type="number" id="leg-seuilInput" min="0.01" step="0.01" value="5" style="width:80px;padding:5px 8px;border:1.5px solid #bfc9d1;border-radius:6px;font-size:.9rem;">
-  </div>
-  <div class="form-section" style="border-top:3px solid #276b3a;">
-    <h2 style="color:#276b3a;">➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="leg-inDate"></div>
-      <div class="form-group"><label>Légume</label><input type="text" id="leg-inLegume" placeholder="Carotte, Blette…"></div>
-      <div class="form-group"><label>Type</label><select id="leg-inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="leg-inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Lot / Facture</label><input type="text" id="leg-inFac" placeholder="LOT-001"></div>
-      <div class="form-group"><label>Fournisseur</label><input type="text" id="leg-inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="leg-btnAdd" style="background:#276b3a;">✔ Ajouter</button></div>
-    </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr style="background:#276b3a;">
-        <th>Date</th><th>Légume</th><th style="color:#a8e6a3;">Entrées (kg)</th><th style="color:#f5b7b1;">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Lot</th><th>N° Lot</th><th>Fournisseur</th><th>✕</th>
-      </tr></thead>
-      <tbody id="leg-tbody"></tbody>
-    </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour" style="background:#f5b87a;color:#7a3000;" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
-  </div>
-</div>
-
-<!-- LEVURE -->
-<div id="page-lev" class="page">
-  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">🫙 Stock Levure</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-lev', 'levure.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="levMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportLevure()">📥 Télécharger CSV</button></div>
-  <div id="lev-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ 5 kg ! Veuillez commander de la levure.</div>
-  <div class="form-section" style="border-top:3px solid #d4a855;">
-    <h2 style="color:#5a3a00;">➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="lev-inDate"></div>
-      <div class="form-group"><label>Type</label><select id="lev-inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="lev-inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Facture</label><input type="text" id="lev-inFac" placeholder="FAC-2026-001"></div>
-      <div class="form-group"><label>Nom FRS</label><input type="text" id="lev-inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="lev-btnAdd" style="background:#d4a855;color:#5a3a00;">✔ Ajouter</button></div>
-    </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr style="background:#d4a855;color:#5a3a00;">
-        <th>Date</th><th style="color:#2a5a1a;">Entrées (kg)</th><th style="color:#c0392b;">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Facture</th><th>N° Facture</th><th>Nom FRS</th><th>✕</th>
-      </tr></thead>
-      <tbody id="lev-tbody"></tbody>
-    </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour" style="background:#d4a855;color:#5a3a00;" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
-  </div>
-</div>
-
-<!-- POIDS CASSÉ -->
-<div id="page-poids" class="page">
-  <button class="btn-accueil-top" onclick="showPage('page-accueil')">🏠 Accueil</button>
-  <h1 style="text-align:center;font-size:2rem;font-weight:900;font-family:'Arial Black',Arial,sans-serif;text-transform:uppercase;letter-spacing:3px;margin-bottom:26px;">⚖️ Stock Poids Cassé</h1>
-  <div class="imprimer-bar" style="max-width:980px;"><button class="btn-imprimer" onclick="exporterEnPDF('page-poids', 'poids_casse.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="poidsMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportPoidsCasse()">📥 Télécharger CSV</button></div>
-  <div id="poids-alertBox" style="display:none;background:#fff0f0;border:2px solid #c0392b;color:#c0392b;font-weight:800;text-align:center;padding:12px 20px;border-radius:8px;margin:0 auto 18px auto;max-width:980px;">⚠ STOCK BAS — Cumul ≤ 5 kg ! Veuillez commander du poids cassé.</div>
-  <div class="form-section" style="border-top:3px solid #1a5a54;">
-    <h2 style="color:#1a5a54;">➕ Nouvelle ligne</h2>
-    <div class="form-grid">
-      <div class="form-group"><label>Date</label><input type="date" id="poids-inDate"></div>
-      <div class="form-group"><label>Type</label><select id="poids-inType"><option value="entree">Entrée</option><option value="sortie">Sortie</option></select></div>
-      <div class="form-group"><label>Quantité (kg)</label><input type="number" id="poids-inQte" min="0.01" step="0.01" placeholder="0.00"></div>
-      <div class="form-group"><label>N° Facture</label><input type="text" id="poids-inFac" placeholder="FAC-2026-001"></div>
-      <div class="form-group"><label>Nom FRS</label><input type="text" id="poids-inFrs" placeholder="Fournisseur"></div>
-      <div class="form-group"><button class="btn-add" id="poids-btnAdd" style="background:#1a5a54;color:#fff;">✔ Ajouter</button></div>
-    </div>
-  </div>
-  <div class="table-wrapper">
-    <table>
-      <thead><tr style="background:#1a5a54;color:#fff;">
-        <th>Date</th><th style="color:#a8e6a3;">Entrées (kg)</th><th style="color:#f5b7b1;">Sorties (kg)</th>
-        <th>Cumul (kg)</th><th>Reste / Facture</th><th>N° Facture</th><th>Nom FRS</th><th>✕</th>
-      </tr></thead>
-      <tbody id="poids-tbody"></tbody>
-    </table>
-  </div>
-  <div class="page-footer">
-    <button class="btn-retour" style="background:#a8d8d0;color:#1a5a54;" onclick="showPage('page-accueil')">🏠 Retour Accueil</button>
-  </div>
-</div>
 
 <!-- COLÉOPTÈRES -->
 <div id="page-col" class="page">
@@ -1024,7 +891,7 @@
   <div class="lar-sub">Suivi du développement larvaire — Tenebrio molitor</div>
 </div>
 
-<div class="imprimer-bar"><button class="btn-imprimer" onclick="exporterEnPDF('page-larves', 'larves.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportLarves()">📥 Télécharger CSV</button></div>
+<div class="imprimer-bar"><button class="btn-imprimer" onclick="exporterEnPDF('page-larves', 'larves.pdf')">📄 Enregistrer en PDF</button><button class="btn-imprimer" style="margin-left:8px;background:#5a6e8a;" onclick="window.print()">🖨 Imprimer</button><button class="btn-mise-a-zero" style="margin-left:10px;" onclick="larMiseAZero()">🔄 Mise à zéro</button><button class="btn-mise-a-zero" style="margin-left:10px;background:#1a5276;" onclick="exportLarves()">📥 Télécharger CSV</button></div>
 
 <!-- RECHERCHE PAR BAC -->
 <div style="background:var(--lsurface);border:1px solid var(--lborder);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
