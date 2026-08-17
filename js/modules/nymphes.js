@@ -123,17 +123,29 @@ function nymBacsDisponiblesNymphes(excludeLotId){
   for(let i=1;i<=BAC_MAX;i++){ if(!utilises.has(i)) dispo.push(i); }
   return dispo;
 }
-function nymRemplirSelectBacs(select, excludeLotId, valeurActuelle){
+function nymRemplirOptionsBacs(select, dispo, valeurActuelle){
   select.innerHTML='';
-  const dispo=nymBacsDisponiblesNymphes(excludeLotId);
-  if(valeurActuelle && dispo.indexOf(valeurActuelle)===-1) dispo.unshift(valeurActuelle);
-  dispo.sort(function(a,b){return a-b;});
   dispo.forEach(function(n){
     const opt=document.createElement('option');
     opt.value=n; opt.textContent='Bac n°'+n;
     if(n===valeurActuelle) opt.selected=true;
     select.appendChild(opt);
   });
+}
+function nymRemplirOptionsLettres(select, dispo, valeurActuelle){
+  select.innerHTML='';
+  dispo.forEach(function(l){
+    const opt=document.createElement('option');
+    opt.value=l; opt.textContent=l;
+    if(l===valeurActuelle) opt.selected=true;
+    select.appendChild(opt);
+  });
+}
+function nymRemplirSelectBacs(select, excludeLotId, valeurActuelle){
+  const dispo=nymBacsDisponiblesNymphes(excludeLotId);
+  if(valeurActuelle && dispo.indexOf(valeurActuelle)===-1) dispo.unshift(valeurActuelle);
+  dispo.sort(function(a,b){return a-b;});
+  nymRemplirOptionsBacs(select, dispo, valeurActuelle);
 }
 function nymBacsDisponiblesColeopteresPourGrille(){
   const u1=nymBacsUtilisesPartout();
@@ -156,27 +168,15 @@ function nymLettresDisponiblesPourGrille(){
   return NYM_LETTRES.filter(function(l){return !utilisees.has(l);});
 }
 function nymRemplirSelectLettres(select, valeurActuelle){
-  select.innerHTML='';
   const dispo=nymLettresDisponiblesPourGrille();
   if(valeurActuelle && dispo.indexOf(valeurActuelle)===-1) dispo.unshift(valeurActuelle);
-  dispo.forEach(function(l){
-    const opt=document.createElement('option');
-    opt.value=l; opt.textContent=l;
-    if(l===valeurActuelle) opt.selected=true;
-    select.appendChild(opt);
-  });
+  nymRemplirOptionsLettres(select, dispo, valeurActuelle);
 }
 function nymRemplirSelectBacsGrille(select, valeurActuelle){
-  select.innerHTML='';
   let dispo=nymBacsDisponiblesColeopteresPourGrille();
   if(valeurActuelle && dispo.indexOf(valeurActuelle)===-1) dispo.unshift(valeurActuelle);
   dispo.sort(function(a,b){return a-b;});
-  dispo.forEach(function(n){
-    const opt=document.createElement('option');
-    opt.value=n; opt.textContent='Bac n°'+n;
-    if(n===valeurActuelle) opt.selected=true;
-    select.appendChild(opt);
-  });
+  nymRemplirOptionsBacs(select, dispo, valeurActuelle);
 }
 
 function nymRenderCompteur(){
@@ -341,14 +341,9 @@ function nymRemplirSelectBacsGrilleFusion(select){
     const lot = NYM_DB.lots.find(function(l){ return parseInt(l.bac,10)===n && nymFusionSelection.indexOf(l.id)!==-1; });
     return !lot;
   }));
-  select.innerHTML='';
   const dispo=[];
   for(let i=1;i<=BAC_MAX;i++){ if(!utilises.has(i)) dispo.push(i); }
-  dispo.forEach(function(n){
-    const opt=document.createElement('option');
-    opt.value=n; opt.textContent='Bac n°'+n;
-    select.appendChild(opt);
-  });
+  nymRemplirOptionsBacs(select, dispo, undefined);
 }
 
 function nymTotalNymphesSelection(){
@@ -412,12 +407,7 @@ function nymTraiterPoidsColeoVersGrille(poidsAjoute){
     }
   }
 
-  if (restant > 0) {
-    // Reliquat à traiter en récursif (cas rare où poidsAjoute > 300g d'un coup)
-    nymTraiterPoidsColeoVersGrille(restant);
-  } else {
-    nymToast('Poids ajouté à la grille en attente : '+poidsAjoute+' g.');
-  }
+  nymToast('Poids ajouté à la grille en attente : '+poidsAjoute+' g.');
 }
 
 let nymGrillePourValidation = null;
@@ -447,30 +437,19 @@ function nymRemplirSelectLettresAvecActuelle(select, lettreActuelle){
       if(Array.isArray(lots)) lots.forEach(function(l){ if(l.grille && l.grille!==lettreActuelle) utilisees.add(l.grille); });
     }
   }catch(e){}
-  select.innerHTML='';
-  NYM_LETTRES.filter(function(l){return !utilisees.has(l);}).forEach(function(l){
-    const opt=document.createElement('option');
-    opt.value=l; opt.textContent=l;
-    if(l===lettreActuelle) opt.selected=true;
-    select.appendChild(opt);
-  });
+  const dispo=NYM_LETTRES.filter(function(l){return !utilisees.has(l);});
+  nymRemplirOptionsLettres(select, dispo, lettreActuelle);
 }
 function nymRemplirSelectBacsGrilleAvecActuel(select, bacActuel){
   bacActuel = parseInt(bacActuel, 10);
   const u1=nymBacsUtilisesPartout();
   const u2=NYM_DB.grillesCreees.filter(function(g){return !g.enAttente && parseInt(g.bac,10)!==bacActuel;}).map(function(g){return parseInt(g.bac,10);});
   const utilises=new Set(u1.concat(u2));
-  select.innerHTML='';
   const dispo=[];
   for(let i=1;i<=BAC_MAX;i++){ if(!utilises.has(i)) dispo.push(i); }
   if(dispo.indexOf(bacActuel)===-1) dispo.unshift(bacActuel);
   dispo.sort(function(a,b){return a-b;});
-  dispo.forEach(function(n){
-    const opt=document.createElement('option');
-    opt.value=n; opt.textContent='Bac n°'+n;
-    if(n===bacActuel) opt.selected=true;
-    select.appendChild(opt);
-  });
+  nymRemplirOptionsBacs(select, dispo, bacActuel);
 }
 
 function nymSafeListen(id, event, handler){
