@@ -1,0 +1,49 @@
+  #page-substrat{
+    --sub-or:#C8952B; --sub-or-fonce:#A9761F; --sub-brun:#5A3E28; --sub-brun-fonce:#3E2A1B;
+    --sub-creme:#FBF6EC; --sub-creme-fonce:#F1E7D2; --sub-vert:#4B7F52; --sub-vert-clair:#E7F0E4;
+    --sub-rouge:#C0392B; --sub-rouge-clair:#FBE8E6; --sub-ombre:0 2px 8px rgba(62,42,27,0.10);
+    background:var(--sub-creme); padding:20px; color:var(--sub-brun-fonce);
+  }
+  #page-substrat .sub-conteneur{max-width:960px;margin:0 auto;}
+  #page-substrat .sub-carte{background:#fff;border-radius:14px;padding:20px 22px;margin-bottom:20px;box-shadow:var(--sub-ombre);border:1px solid var(--sub-creme-fonce);}
+  #page-substrat .sub-carte h2{margin:0 0 4px 0;font-size:1.05rem;color:var(--sub-brun-fonce);display:flex;align-items:center;gap:8px;}
+  #page-substrat .sub-sous-titre{margin:0 0 16px 0;font-size:0.83rem;color:#8a7761;}
+  #page-substrat .sub-recette-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px;}
+  #page-substrat .sub-champ-pct{background:var(--sub-creme);border:1px solid var(--sub-creme-fonce);border-radius:10px;padding:10px 12px;text-align:center;}
+  #page-substrat .sub-champ-pct label{display:block;font-size:0.78rem;font-weight:600;color:var(--sub-brun);margin-bottom:6px;}
+  #page-substrat .sub-champ-pct input{width:100%;border:1px solid var(--sub-creme-fonce);border-radius:8px;padding:6px;text-align:center;font-size:1rem;font-weight:700;color:var(--sub-or-fonce);}
+  #page-substrat .sub-total-pct{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:10px;font-weight:700;font-size:0.9rem;}
+  #page-substrat .sub-total-ok{background:var(--sub-vert-clair);color:var(--sub-vert);}
+  #page-substrat .sub-total-ko{background:var(--sub-rouge-clair);color:var(--sub-rouge);}
+  #page-substrat .sub-stocks-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;}
+  #page-substrat .sub-stock-carte{border-radius:12px;padding:14px 16px;border:1px solid var(--sub-creme-fonce);background:var(--sub-creme);}
+  #page-substrat .sub-stock-carte .sub-icone{font-size:1.6rem;}
+  #page-substrat .sub-stock-carte .sub-nom{font-size:0.85rem;font-weight:700;color:var(--sub-brun);margin:4px 0 2px 0;}
+  #page-substrat .sub-stock-carte .sub-qte{font-size:1.35rem;font-weight:800;color:var(--sub-or-fonce);}
+  #page-substrat .sub-stock-carte .sub-qte span{font-size:0.8rem;font-weight:500;color:#8a7761;}
+  #page-substrat .sub-stock-carte.sub-alerte{border-color:var(--sub-rouge);background:var(--sub-rouge-clair);}
+  #page-substrat .sub-stock-carte.sub-alerte .sub-qte{color:var(--sub-rouge);}
+  #page-substrat .sub-lien-stocks{display:inline-block;margin-top:14px;font-size:0.8rem;color:var(--sub-or-fonce);font-weight:700;text-decoration:none;border:1px solid var(--sub-or);border-radius:8px;padding:8px 14px;cursor:pointer;background:#fff;}
+  #page-substrat .sub-form-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end;}
+  #page-substrat .sub-champ label{display:block;font-size:0.78rem;font-weight:600;color:var(--sub-brun);margin-bottom:5px;}
+  #page-substrat .sub-champ input{width:100%;border:1px solid var(--sub-creme-fonce);border-radius:8px;padding:8px 10px;font-size:0.9rem;box-sizing:border-box;}
+  #page-substrat .sub-apercu{margin-top:14px;padding:12px 14px;background:var(--sub-creme);border-radius:10px;font-size:0.85rem;display:none;}
+  #page-substrat .sub-apercu.visible{display:block;}
+  #page-substrat .sub-apercu-ligne{display:flex;justify-content:space-between;padding:2px 0;}
+  #page-substrat .sub-apercu-ligne b{color:var(--sub-or-fonce);}
+  #page-substrat .sub-btn-principal{margin-top:14px;background:var(--sub-or);color:var(--sub-brun-fonce);border:none;border-radius:10px;padding:11px 20px;font-size:0.92rem;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(200,149,43,0.35);}
+  #page-substrat .sub-btn-principal:hover{background:var(--sub-or-fonce);color:#fff;}
+  #page-substrat .sub-avertissement{margin-top:10px;padding:9px 12px;background:var(--sub-rouge-clair);color:var(--sub-rouge);border-radius:8px;font-size:0.82rem;font-weight:600;display:none;}
+  #page-substrat .sub-avertissement.visible{display:block;}
+  #page-substrat .sub-barre-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  #page-substrat .sub-btn-mini{border:1px solid var(--sub-creme-fonce);background:var(--sub-creme);color:var(--sub-brun);border-radius:8px;padding:7px 12px;font-size:0.8rem;font-weight:600;cursor:pointer;}
+  #page-substrat .sub-btn-mini.danger{color:var(--sub-rouge);}
+  #page-substrat table{width:100%;border-collapse:collapse;font-size:0.85rem;}
+  #page-substrat thead th{text-align:left;padding:9px 10px;background:var(--sub-brun-fonce);color:var(--sub-creme);font-size:0.78rem;text-transform:uppercase;}
+  #page-substrat tbody td{padding:9px 10px;border-bottom:1px solid var(--sub-creme-fonce);}
+  #page-substrat .sub-ing-tag{display:inline-block;padding:1px 7px;border-radius:6px;font-size:0.76rem;font-weight:600;margin-right:3px;}
+  #page-substrat .sub-tag-son{background:#F3E4C4;color:#8a6a1f;}
+  #page-substrat .sub-tag-farine{background:#E6D8C3;color:#6b5330;}
+  #page-substrat .sub-tag-levure{background:#E4D9F0;color:#6a4f96;}
+  #page-substrat .sub-vide{text-align:center;padding:30px 10px;color:#a8987f;font-size:0.85rem;}
+  #page-substrat .sub-btn-suppr{background:none;border:none;color:var(--sub-rouge);cursor:pointer;font-size:0.9rem;}
